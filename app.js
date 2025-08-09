@@ -1,129 +1,606 @@
-// Vida+ v4.7 — com Supabase opcional (login por magic link + sync simples)
-/* Vida+ JS v4.6 (compact build) */
-(()=>{
-const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
-const main=$('main'); const W={sleep:.30,meals:.45,exercise:.15,hydration:.10,mind:.05};
-const CFG=JSON.parse(localStorage.getItem('vida_plus_settings')||'{}');
-Object.assign(CFG,{sleepGoal:CFG.sleepGoal??7,waterGoal:CFG.waterGoal??2500,weightGoal:CFG.weightGoal??81,cup:CFG.cup??250,startDate:CFG.startDate||new Date().toISOString().slice(0,10),coffeeLimit:CFG.coffeeLimit??3,alcoholLimit:CFG.alcoholLimit??2,nameA:CFG.nameA||'Treino A',nameB:CFG.nameB||'Treino B',nameC:CFG.nameC||'Treino C'});
-function saveCfg(){localStorage.setItem('vida_plus_settings',JSON.stringify(CFG))}
-const today=()=>new Date().toISOString().slice(0,10); let cur=today();
-function ld(k=cur){try{return JSON.parse(localStorage.getItem('vida_plus_'+k)||'{}')}catch(e){return{}}}
-function sv(d,k=cur){const m=Object.assign(ld(k),d,{dateKey:k,updated_at:new Date().toISOString()});localStorage.setItem('vida_plus_'+k,JSON.stringify(m));renderAll()}
-function arr(k,n){try{return JSON.parse(localStorage.getItem('vida_plus_'+k+'_'+n)||'[]')}catch(e){return[]}}
-function setArr(k,n,a){localStorage.setItem('vida_plus_'+k+'_'+n,JSON.stringify(a))}
-function sec(t,id){return `<section id="${id}"><h2>${t}</h2><div class="content"></div></section>`}
-main.innerHTML=sec('⚖️ Peso','sWeight')+sec('😴 Sono <span class="secPts" id="ptsSleep">0 / 30</span>','sSleep')+
-sec('🍽️ Alimentação <span class="secPts" id="ptsMeals">0 / 45</span>','sMeals')+
-sec('🏃 Exercício <span class="secPts" id="ptsEx">0 / 15</span>','sEx')+
-sec('🧠 Mente <span class="secPts" id="ptsMind">0 / 5</span>','sMind')+
-sec('💧 Hidratação <span class="secPts" id="ptsHyd">0 / 10</span>','sHyd')+
-sec('🥤 Bebidas','sBev')+
-`<section id="sAct"><h2>⚙️ Ações</h2><div class="grid g2">
-<button id="saveBtn" class="btn">Salvar agora</button><button id="closeBtn" class="btn secondary">Fechar o dia</button></div>
-<details><summary>Configurações</summary><div class="grid g2" style="margin-top:8px">
-<div><label class="small muted">Meta de sono (h)</label><input id="cfgSleep" type="number" step="0.25"></div>
-<div><label class="small muted">Meta de água (ml)</label><input id="cfgWater" type="number" step="100"></div>
-</div><div class="grid g2" style="margin-top:8px">
-<div><label class="small muted">Peso alvo (kg)</label><input id="cfgGoal" type="number" step="0.1"></div>
-<div><label class="small muted">Copo padrão (ml)</label><input id="cfgCup" type="number"></div>
-</div><div class="grid g2" style="margin-top:8px">
-<div><label class="small muted">Data inicial</label><input id="cfgStart" type="date"></div>
-<div><label class="small muted">Limites (café/álcool)</label><div class="row"><input id="cfgCoffee" type="number" style="max-width:100px"><input id="cfgAlc" type="number" style="max-width:100px"></div></div>
-</div><div class="row" style="margin-top:8px"><button id="reset" class="chip">Corrigir cache</button></div></details></section>`+
-`<section id="sHist"><h2>📚 Histórico</h2>
-<div class="histHead"><div></div><div class="numRight"><div class="histColLabel">Nota</div><div class="histAvg" id="avgNote">—</div></div><div><div class="histColLabel">Ícones</div><div class="histAvg" id="avgIcons"></div></div><div class="numRight"><div class="histColLabel">Peso</div><div class="histAvg" id="avgWeight">—</div></div></div>
-<div id="histList" class="col"></div></section>`;
-function rowStars(n,id){return `<div class="stars" id="${id}">${'<div class="star"><span>★</span></div>'.repeat(n)}</div>`}
-$('#sWeight .content').innerHTML=`<div class="grid g2"><div><div class="row" style="flex-wrap:nowrap">
-<input id="wToday" type="number" step="0.1" style="max-width:140px"><span class="smallish muted">kg</span><button id="wOk" class="chip">OK</button>
-</div><div id="wPrevRow" class="small" style="display:none">Ontem: <span id="wPrev"></span> <span id="wDelta" class="muted"></span></div>
-<div class="small">Meta: <span id="wGoal"></span> (<span id="wLeft">—</span> para chegar)</div></div></div>`;
-$('#sSleep .content').innerHTML=`<div class="grid g2"><div><label class="small muted">Horas dormidas</label>
-<input id="sHours" type="number" step="0.25" style="max-width:140px"><div class="small">Meta: <span id="sGoal"></span> h <span id="sOk" class="muted"></span></div></div>
-<div><label class="small muted">Qualidade</label>${rowStars(3,'sQual')}</div></div>`;
-$('#sMeals .content').innerHTML=['Café da manhã','Lanche manhã','Almoço','Lanche tarde','Jantar'].map((n,i)=>{
- const ids=['cafe','lman','alm','ltar','jan'][i]; return `<div class="row"><div style="min-width:120px" class="mealName" data-k="${ids}">${n}</div>${rowStars(3,'m_'+ids)}</div>`}).join('')+
-`<footer class="note">Toque no nome para limpar.</footer>`;
-$('#sEx .content').innerHTML=`<div class="small muted" id="exPrev"></div>
-<div class="row"><span id="exA" class="chip" aria-pressed="false">Treino A</span><span id="exB" class="chip" aria-pressed="false">Treino B</span><span id="exC" class="chip" aria-pressed="false">Treino C</span></div>
-<div class="grid g2"><div><label class="small muted">Caminhada (min)</label><input id="exMin" type="number" step="5" placeholder="ex: 30"></div></div>`;
-$('#sMind .content').innerHTML=`<div class="row" style="gap:8px"><span id="mRead" class="chip">📖 Ler</span><span id="mBook" class="chip">✍️ Livro</span><span id="mMed" class="chip">🧘‍♂️ Meditar</span></div>`;
-$('#sHyd .content').innerHTML=`<div class="row"><button id="hUndo" class="chip">−1 copo</button><button id="hAdd" class="chip">+ <span id="cupLbl">250</span> ml</button><div class="right small" id="hPct">0%</div></div>
-<div class="row" style="margin-top:6px;align-items:center"><div style="flex:1"><progress id="hProg" max="2500" value="0"></progress></div>
-<div class="right small muted"><span id="hTot">0</span> / <span id="hGoal">2500</span> ml</div></div>`;
-$('#sBev .content').innerHTML=`<div class="bevGrid"><div>☕ Café</div><button id="cUndo" class="chip">−1</button><button id="cAdd" class="chip">+1</button><div id="cIcons" class="small">—</div><div id="cNum" class="bevNum small">0</div></div>
-<div class="bevGrid" style="margin-top:6px"><div>🍷 Álcool</div><button id="aUndo" class="chip">−1</button><button id="aAdd" class="chip">+1</button><div id="aIcons" class="small">—</div><div id="aNum" class="bevNum small">0</div></div>
-<footer class="note">Não afetam a nota. Limites em configurações.</footer>`;
-// header date/score
-function fmtTop(){const d=new Date(cur);const m=['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'][d.getUTCMonth()];const w=['dom','seg','ter','qua','qui','sex','sab'][d.getUTCDay()];const dd=('0'+d.getUTCDate()).slice(-2);$('#dateTop').textContent=`${dd}/${m} (${w})`}
-function starify(qSel, n, on){const nodes=$$(qSel+' .star'); const set=v=>{nodes.forEach((e,i)=>e.classList.toggle('active',i<v)); on&&on(v)}; nodes.forEach((e,i)=>e.onclick=()=>set(i+1)); return set }
-const setQual=starify('#sQual',3,n=>sv({sleepQuality:n}));
-['cafe','lman','alm','ltar','jan'].forEach(id=>{ starify('#m_'+id,3,()=>sv({mealRatings:getMeals()})); $('.mealName[data-k="'+id+'"]').onclick=()=>{$$('#m_'+id+' .star').forEach(s=>s.classList.remove('active')); sv({mealRatings:getMeals()})}; });
-function pressed(id){const e=$(id); const on=e.getAttribute('aria-pressed')==='true'; e.setAttribute('aria-pressed', on?'false':'true'); }
-$('#exA').onclick=()=>{pressed('#exA'); sv({muscs:getMuscs()})}; $('#exB').onclick=()=>{pressed('#exB'); sv({muscs:getMuscs()})}; $('#exC').onclick=()=>{pressed('#exC'); sv({muscs:getMuscs()})};
-$('#exMin').onchange=()=>sv({exerciseMins:parseInt($('#exMin').value)||0});
-$('#mRead').onclick=()=>{pressed('#mRead'); sv({mind:getMind()})}; $('#mBook').onclick=()=>{pressed('#mBook'); sv({mind:getMind()})}; $('#mMed').onclick=()=>{pressed('#mMed'); sv({mind:getMind()})};
-$('#hAdd').onclick=()=>{const a=arr(cur,'waterEvents'); a.push(CFG.cup); setArr(cur,'waterEvents',a); updWater()}
-$('#hUndo').onclick=()=>{const a=arr(cur,'waterEvents'); a.pop(); setArr(cur,'waterEvents',a); updWater()}
-$('#cAdd').onclick=()=>{const d=ld(); sv({coffeeCount:(d.coffeeCount||0)+1}); updBev()}; $('#cUndo').onclick=()=>{const d=ld(); sv({coffeeCount:Math.max(0,(d.coffeeCount||0)-1)}); updBev()}
-$('#aAdd').onclick=()=>{const d=ld(); sv({alcoholCount:(d.alcoholCount||0)+1}); updBev()}; $('#aUndo').onclick=()=>{const d=ld(); sv({alcoholCount:Math.max(0,(d.alcoholCount||0)-1)}); updBev()}
-$('#wOk').onclick=()=>{const v=parseFloat($('#wToday').value); if(!isNaN(v)) sv({weight:v}); labels(); hist(); }
-$('#sHours').onchange=()=>sv({sleepHours:parseFloat($('#sHours').value)||0});
-$('#saveBtn').onclick=()=>sv(ld());
-$('#closeBtn').onclick=()=>{const d=ld(); let t=''; if(d.muscs?.A) t=CFG.nameA; else if(d.muscs?.B) t=CFG.nameB; else if(d.muscs?.C) t=CFG.nameC; sv({prevWorkout:t}); alert('Dia fechado')}
-$('#cfgSleep').value=CFG.sleepGoal; $('#cfgWater').value=CFG.waterGoal; $('#cfgGoal').value=CFG.weightGoal; $('#cfgCup').value=CFG.cup; $('#cfgStart').value=CFG.startDate; $('#cfgCoffee').value=CFG.coffeeLimit; $('#cfgAlc').value=CFG.alcoholLimit;
-['cfgSleep','cfgWater','cfgGoal','cfgCup','cfgStart','cfgCoffee','cfgAlc'].forEach(id=>{$('#'+id).onchange=()=>{Object.assign(CFG,{sleepGoal:parseFloat($('#cfgSleep').value)||CFG.sleepGoal,waterGoal:parseFloat($('#cfgWater').value)||CFG.waterGoal,weightGoal:parseFloat($('#cfgGoal').value)||CFG.weightGoal,cup:parseFloat($('#cfgCup').value)||CFG.cup,startDate:$('#cfgStart').value||CFG.startDate,coffeeLimit:parseInt($('#cfgCoffee').value)||CFG.coffeeLimit,alcoholLimit:parseInt($('#cfgAlc').value)||CFG.alcoholLimit}); saveCfg(); labels(); updWater(); updBev(); hist(); renderAll(); }});
-$('#reset').onclick=async()=>{if(confirm('Limpar cache e recarregar?')){try{const r=await navigator.serviceWorker.getRegistrations(); for(const x of r) await x.unregister();}catch(e){} localStorage.clear(); location.reload();}}
-function getMeals(){const m={}; ['cafe','lman','alm','ltar','jan'].forEach((id,i)=>{m[['cafe','lanche_manha','almoco','lanche_tarde','jantar'][i]]=$$('#m_'+id+' .star.active').length}); return m}
-function getMuscs(){return {A:$('#exA').getAttribute('aria-pressed')==='true',B:$('#exB').getAttribute('aria-pressed')==='true',C:$('#exC').getAttribute('aria-pressed')==='true'}}
-function getMind(){return {read:$('#mRead').getAttribute('aria-pressed')==='true',book:$('#mBook').getAttribute('aria-pressed')==='true',meditation:$('#mMed').getAttribute('aria-pressed')==='true'}}
-function parts(d){function sleep(h,q,g){if(!h) return 0; const ratio=Math.min(h/g,g/h); return Math.max(0,Math.min(1,ratio*((q||0)/3)))}; 
-const ms={0:0,1:0,2:.6,3:1}; const meal=(()=>{const k=['cafe','lanche_manha','almoco','lanche_tarde','jantar']; const v=k.map(x=>ms[(d.mealRatings||{})[x]||0]); return v.reduce((a,b)=>a+b,0)/k.length})();
-const ex=Math.min(1,(Math.min((d.exerciseMins||0)/30,1)*.6)+((d.muscs&&(d.muscs.A||d.muscs.B||d.muscs.C))?.4:0));
-const mind=((d.mind?.read? .4:0)+(d.mind?.book? .3:0)+(d.mind?.meditation? .3:0)); const hyd=Math.min(1,(d.waterTotal||0)/(CFG.waterGoal||1));
-const sl=sleep(d.sleepHours||0,d.sleepQuality||0,CFG.sleepGoal); return {sleep:sl, meals:meal, exercise:ex, mind:Math.min(1,mind), hydration:hyd}}
-function total(d){const p=parts(d); return Math.round(p.sleep*W.sleep*100 + p.meals*W.meals*100 + p.exercise*W.exercise*100 + p.hydration*W.hydration*100 + p.mind*W.mind*100)}
-function labels(){const d=ld(cur), y=new Date(Date.parse(cur)-86400000).toISOString().slice(0,10), yd=ld(y);
-$('#wGoal').textContent=(CFG.weightGoal).toFixed(1)+' kg'; if(yd.weight!=null){$('#wPrevRow').style.display='block'; $('#wPrev').textContent=(yd.weight).toFixed(1)+' kg';
-if(d.weight!=null){const df=+(d.weight-yd.weight).toFixed(1); $('#wDelta').textContent=' ('+(df>0?'+':'')+df+' kg)'; $('#wDelta').style.color=df<0?'#58d68d':(df>0?'#ff6b6b':'#aaa'); }}
-else{$('#wPrevRow').style.display='none'}; $('#wLeft').textContent=(d.weight!=null? Math.max(0,(d.weight-CFG.weightGoal)).toFixed(1)+' kg':'—')}
-function updWater(){const a=arr(cur,'waterEvents'); const tot=a.reduce((x,y)=>x+y,0); $('#hProg').max=CFG.waterGoal; $('#hGoal').textContent=CFG.waterGoal; $('#hTot').textContent=tot; const pct=CFG.waterGoal? Math.min(100,Math.round(100*tot/CFG.waterGoal)):0; $('#hPct').textContent=pct+'%'; sv({waterTotal:tot})}
-function updBev(){const d=ld(); const c=d.coffeeCount||0,a=d.alcoholCount||0; $('#cIcons').innerHTML=c? '☕'.repeat(Math.min(c,5))+(c>5?'<span class=mini>x'+c+'</span>':''):'—'; $('#aIcons').innerHTML=a? '🍷'.repeat(Math.min(a,5))+(a>5?'<span class=mini>x'+a+'</span>':''):'—';
-$('#cNum').className='bevNum small '+(c===0?'ok':(c<=CFG.coffeeLimit?'warn':'bad')); $('#aNum').className='bevNum small '+(a===0?'ok':(a<=CFG.alcoholLimit?'warn':'bad')); $('#cNum').textContent=c; $('#aNum').textContent=a}
-function streak(){let s=0,prev=null; for(let i=0;i<365;i++){const k=new Date(Date.now()-i*86400000).toISOString().slice(0,10), d=ld(k); if(d.weight==null){if(i===0){prev=null;continue} break} if(i===0){prev=d.weight;s=1;continue} if(prev!=null && d.weight<prev){s++;prev=d.weight}else{break}} $('#streakNum').textContent=Math.max(0,s-1)}
-function hist(){const list=$('#histList'); list.innerHTML=''; const start=new Date(CFG.startDate); const rows=[]; for(let i=0;i<365;i++){const dt=new Date(Date.now()-i*86400000); if(dt<start) break; const k=dt.toISOString().slice(0,10); rows.push({k,d:ld(k)})}
-let sn=0,cn=0,sw=0,cw=0; rows.forEach(({k,d})=>{const n=total(d||{}); if(n>0){sn+=n;cn++} if(d&&d.weight!=null){sw+=d.weight;cw++}});
-$('#avgNote').textContent=cn?Math.round(sn/cn):'—'; $('#avgWeight').textContent=cw?(sw/cw).toFixed(1)+' kg':'—';
-rows.forEach(({k,d})=>{const div=document.createElement('div'); div.className='histRow'; div.onclick=()=>{cur=k; fill(ld(k)); window.scrollTo({top:0,behavior:'smooth'})};
-const note=total(d||{}); const mind=(d?.mind&&(d.mind.read||d.mind.book||d.mind.meditation))?'🧠':''; const c=d?.coffeeCount||0,a=d?.alcoholCount||0;
-const cc=(c===0?'ok':(c<=CFG.coffeeLimit?'warn':'bad')); const aa=(a===0?'ok':(a<=CFG.alcoholLimit?'warn':'bad'));
-div.innerHTML=`<div>${k.slice(8,10)}/${['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'][+k.slice(5,7)-1]}</div>
-<div class="numRight">${note||'—'}</div><div class="histIcons"><span class="mini">${mind}</span> <span class="mini ${cc}">${c? '☕'.repeat(Math.min(c,3))+(c>3?'x'+c:''):''}</span> <span class="mini ${aa}">${a? '🍷'.repeat(Math.min(a,3))+(a>3?'x'+a:''):''}</span></div>
-<div class="numRight">${(d&&d.weight!=null)? d.weight.toFixed(1)+' kg':'—'}</div>`; list.appendChild(div)})}
-function renderPts(){const d=ld(); const p=parts(d); $('#ptsSleep').textContent=Math.round(p.sleep*W.sleep*100)+' / 30'; $('#ptsMeals').textContent=Math.round(p.meals*W.meals*100)+' / 45'; $('#ptsEx').textContent=Math.round(p.exercise*W.exercise*100)+' / 15'; $('#ptsHyd').textContent=Math.round(p.hydration*W.hydration*100)+' / 10'; $('#ptsMind').textContent=Math.round(p.mind*W.mind*100)+' / 5'}
-function renderTop(){ $('#scoreTop').textContent= total(ld()); streak(); fmtTop(); }
-function fill(d){ $('#wToday').value=d.weight??''; $('#sHours').value=d.sleepHours??''; setQual(d.sleepQuality||0); ['cafe','lman','alm','ltar','jan'].forEach((id,i)=>{$$('#m_'+id+' .star').forEach(s=>s.classList.remove('active')); const map={cafe:'cafe',lman:'lanche_manha',alm:'almoco',ltar:'lanche_tarde',jan:'jantar'}; const v=(d.mealRatings||{})[map[id]]||0; $$('#m_'+id+' .star').forEach((s,ix)=> s.classList.toggle('active', ix<v));}); $('#exA').setAttribute('aria-pressed',d.muscs?.A?'true':'false'); $('#exB').setAttribute('aria-pressed',d.muscs?.B?'true':'false'); $('#exC').setAttribute('aria-pressed',d.muscs?.C?'true':'false'); $('#exMin').value=d.exerciseMins||''; $('#mRead').setAttribute('aria-pressed',d.mind?.read?'true':'false'); $('#mBook').setAttribute('aria-pressed',d.mind?.book?'true':'false'); $('#mMed').setAttribute('aria-pressed',d.mind?.meditation?'true':'false'); updBev(); updWater(); labels(); renderTop(); renderPts(); }
-function renderAll(){renderTop(); renderPts(); hist();}
-function boot(){ $('#cupLbl').textContent=CFG.cup; $('#hProg').max=CFG.waterGoal; $('#hGoal').textContent=CFG.waterGoal; $('#sGoal').textContent=CFG.sleepGoal; $('#sOk').textContent=''; labels(); fill(ld()); }
-if('serviceWorker' in navigator){ navigator.serviceWorker.register('./sw.js?v=460').catch(()=>{}); }
-boot(); document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'){renderAll()}});
-})();
+/* Vida+ app.js — v4.7.2 (hotfix Supabase OTP redirect + healthcheck)
+   - Tabela Supabase: public.days (user_id uuid, date text, data jsonb, updated_at timestamptz)
+   - Chave composta (user_id,date)
+   - Política RLS: o usuário só vê/escreve os próprios registros
+*/
 
-// Date picker: tap dateTop to show, change to jump
-const dateTopEl = document.getElementById('dateTop');
-const datePicker = document.getElementById('datePicker');
-if (dateTopEl && datePicker){
-  dateTopEl.addEventListener('click', ()=>{
-    datePicker.value = (state.currentKey||new Date().toISOString().slice(0,10));
-    datePicker.style.display = datePicker.style.display==='none' ? 'block' : 'none';
-    datePicker.showPicker && datePicker.showPicker();
-  });
-  datePicker.addEventListener('change', ()=>{
-    const d = datePicker.value;
-    if(d){
-      state.currentKey = d;
-      renderAll();
-      datePicker.style.display='none';
+/* ====================== UTIL ====================== */
+const pad = (n) => String(n).padStart(2, '0');
+const toKey = (d = new Date()) => {
+  const y = d.getFullYear(), m = d.getMonth()+1, day = d.getDate();
+  return `${y}-${pad(m)}-${pad(day)}`;
+};
+const fromKey = (k) => {
+  const [y,m,d] = k.split('-').map(Number);
+  return new Date(y, m-1, d);
+};
+const fmtDateTop = (d) => {
+  const dias = ['dom','seg','ter','qua','qui','sex','sáb'];
+  const meses = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
+  return `${pad(d.getDate())}/${meses[d.getMonth()]} (${dias[d.getDay()]})`;
+};
+const shallowClone = (o) => JSON.parse(JSON.stringify(o||{}));
+
+/* ====================== ESTADO ====================== */
+const state = {
+  version: '4.7.2',
+  currentKey: toKey(),
+  cache: {},          // { 'yyyy-mm-dd': { ...dados do dia... } }
+  config: {           // configurações do usuário (persistido local)
+    metaSleepH: 7,
+    metaWaterML: 2500,
+    cupML: 250,
+    startCampaign: toKey(), // ponto de partida p/ histórico/sync
+    weightTarget: 81,
+    walkGoalMin: 30,
+    coffeeLimit: 3,
+    alcoholLimit: 1
+  },
+  auth: {
+    supabase: null,
+    user: null,
+    status: 'offline' // 'checando' | 'online' | 'offline'
+  }
+};
+
+// pesos (conforme combinamos)
+const WEIGHTS = {
+  sleep: 30,
+  food: 45,
+  exercise: 15,
+  water: 10,
+  mind: 5
+};
+
+// estrutura de um dia
+const emptyDay = () => ({
+  weight: null,          // kg (number)
+  sleep: { hours: null, quality: 0 }, // quality: 0..3
+  food: { // 0..3 por refeição
+    breakfast: 0, snack1: 0, lunch: 0, snack2: 0, dinner: 0
+  },
+  exercise: { walkMin: 0, workout: '' }, // workout: 'A'|'B'|'C'|''
+  mind: { read: false, book: false, meditate: false },
+  water: { ml: 0 },
+  drinks: { coffee: 0, alcohol: 0 }, // não afetam nota
+  note: ''                           // reservado p/ futuro
+});
+
+/* ====================== STORAGE LOCAL ====================== */
+const LS_KEY = 'vida_plus_days_v1';
+const LS_CFG = 'vida_plus_cfg_v1';
+
+const loadLocal = () => {
+  try {
+    const raw = localStorage.getItem(LS_KEY);
+    state.cache = raw ? JSON.parse(raw) : {};
+  } catch(_) { state.cache = {}; }
+  try {
+    const rawC = localStorage.getItem(LS_CFG);
+    if (rawC) Object.assign(state.config, JSON.parse(rawC));
+  } catch(_) {}
+};
+const saveLocal = () => {
+  localStorage.setItem(LS_KEY, JSON.stringify(state.cache));
+  localStorage.setItem(LS_CFG, JSON.stringify(state.config));
+};
+
+/* ====================== SUPABASE ====================== */
+const $ = (id) => document.getElementById(id);
+
+const AUTH = {
+  init: async () => {
+    const msg = $('authMsg'), btn = $('authSend');
+    msg.textContent = 'checando…';
+    btn.disabled = true;
+    // healthcheck
+    try {
+      const ok = await fetch(window.SUPABASE_URL + '/health', {mode:'cors'}).then(r=>r.ok);
+      state.auth.status = ok ? 'online' : 'offline';
+      msg.textContent = ok ? 'online' : 'offline';
+      btn.disabled = !ok;
+    } catch(e){
+      state.auth.status = 'offline';
+      msg.textContent = 'offline';
+      btn.disabled = true;
     }
+
+    // cliente
+    try{
+      state.auth.supabase = window.supabase.createClient(
+        window.SUPABASE_URL, window.SUPABASE_ANON_KEY
+      );
+      // detectar sessão
+      const { data: { session } } = await state.auth.supabase.auth.getSession();
+      if (session?.user) {
+        state.auth.user = session.user;
+        AUTH._onLoginUI();
+      } else {
+        AUTH._onLogoutUI();
+      }
+
+      // escuta mudança de sessão
+      state.auth.supabase.auth.onAuthStateChange((_event, sess)=>{
+        if (sess?.user){
+          state.auth.user = sess.user;
+          AUTH._onLoginUI();
+          // após logar, tentar puxar campanha
+          SYNC.pullCampaign().then(()=>{
+            renderAll();
+          });
+        } else {
+          state.auth.user = null;
+          AUTH._onLogoutUI();
+        }
+      });
+
+      // botão enviar
+      $('authSend').onclick = async () => {
+        const email = $('authEmail').value.trim();
+        if (!email) { msg.textContent = 'informe seu e-mail'; return; }
+        if (state.auth.status !== 'online') { msg.textContent = 'offline'; return; }
+        $('authSend').disabled = true;
+        msg.textContent = 'enviando…';
+        const redirectTo = location.origin + location.pathname; // ex: https://user.github.io/app/
+        const { error } = await state.auth.supabase.auth.signInWithOtp({
+          email,
+          options: { emailRedirectTo: redirectTo, shouldCreateUser: true }
+        });
+        if (error) {
+          msg.textContent = 'erro: ' + error.message;
+        } else {
+          msg.textContent = 'link enviado! confira o e-mail';
+        }
+        $('authSend').disabled = false;
+      };
+
+      // sair
+      $('authSignOut').onclick = async () => {
+        await state.auth.supabase.auth.signOut();
+      };
+
+    }catch(e){
+      msg.textContent = 'erro supabase';
+    }
+  },
+  _onLoginUI(){
+    $('authMsg').textContent = 'logado';
+    $('authSignOut').style.display = '';
+  },
+  _onLogoutUI(){
+    $('authMsg').textContent = state.auth.status === 'online' ? 'online' : 'offline';
+    $('authSignOut').style.display = 'none';
+  }
+};
+
+const SYNC = {
+  // baixa todos os dias desde a data inicial da campanha
+  pullCampaign: async () => {
+    if (!state.auth.user || !state.auth.supabase) return;
+    const from = state.config.startCampaign || toKey();
+    const { data, error } = await state.auth.supabase
+      .from('days')
+      .select('date,data,updated_at')
+      .eq('user_id', state.auth.user.id)
+      .gte('date', from)
+      .order('date', { ascending: true });
+
+    if (error) { console.warn('pull error', error); return; }
+
+    data.forEach(row => {
+      const local = state.cache[row.date];
+      // usa o mais novo (server vs local)
+      if (!local || (row.updated_at && (!local.updated_at || new Date(row.updated_at) > new Date(local.updated_at)))) {
+        state.cache[row.date] = {...row.data, updated_at: row.updated_at};
+      }
+    });
+    saveLocal();
+  },
+  upsertToday: async (key) => {
+    if (!state.auth.user || !state.auth.supabase) return;
+    const day = shallowClone(state.cache[key] || emptyDay());
+    const payload = { user_id: state.auth.user.id, date: key, data: day };
+    const { error } = await state.auth.supabase.from('days').upsert(payload).select();
+    if (error) console.warn('upsert error', error);
+  }
+};
+
+/* ====================== CÁLCULOS ====================== */
+function scoreForDay(d){
+  d = d || emptyDay();
+  let total = 0;
+
+  // SONO (30): horas vs meta, + qualidade 0..3 -> até 30
+  const h = Number(d.sleep.hours||0);
+  const q = Number(d.sleep.quality||0); // 0..3
+  const hMeta = Number(state.config.metaSleepH||7);
+  let sleepPts = 0;
+  if (hMeta > 0){
+    const hRatio = Math.min(h / hMeta, 1); // 0..1
+    // 70% por horas, 30% por qualidade
+    sleepPts = Math.round(WEIGHTS.sleep * (0.7*hRatio + 0.3*(q/3)));
+  }
+  total += sleepPts;
+
+  // ALIMENTAÇÃO (45): 5 refeições, cada 0..3 => 15 máx → escala para 45
+  const f = d.food||{};
+  const sumMeals = (f.breakfast||0)+(f.snack1||0)+(f.lunch||0)+(f.snack2||0)+(f.dinner||0); // 0..15
+  const foodPts = Math.round((sumMeals/15)*WEIGHTS.food);
+  total += foodPts;
+
+  // EXERCÍCIO (15): 60% caminhada (atingir goal), 40% treino A/B/C
+  const walk = Number((d.exercise||{}).walkMin||0);
+  const walkGoal = Number(state.config.walkGoalMin||30);
+  const walkRatio = walkGoal>0 ? Math.min(walk/walkGoal,1) : 0;
+  const workoutDone = ((d.exercise||{}).workout||'') ? 1 : 0;
+  const exPts = Math.round(WEIGHTS.exercise*(0.6*walkRatio + 0.4*workoutDone));
+  total += exPts;
+
+  // HIDRATAÇÃO (10): ml vs meta
+  const ml = Number((d.water||{}).ml||0);
+  const metaML = Number(state.config.metaWaterML||2500);
+  const waterPts = metaML>0 ? Math.round(WEIGHTS.water*Math.min(ml/metaML,1)) : 0;
+  total += waterPts;
+
+  // MENTE (5): qualquer um dos 3 marca (ler/livro/meditar)
+  const m = d.mind||{};
+  const mindDone = (m.read||m.book||m.meditate) ? 1 : 0;
+  const mindPts = mindDone ? WEIGHTS.mind : 0;
+  total += mindPts;
+
+  return { total, breakdown: { sleep: sleepPts, food: foodPts, exercise: exPts, water: waterPts, mind: mindPts } };
+}
+
+function computeStreak(key){
+  // dias consecutivos (descendo no tempo) com redução de peso vs dia anterior
+  const keys = Object.keys(state.cache).sort(); // asc
+  const idx = keys.indexOf(key);
+  if (idx < 0) return 0;
+  let streak = 0;
+  for (let i=idx; i>0; i--){
+    const a = state.cache[keys[i]];
+    const b = state.cache[keys[i-1]];
+    if (!a?.weight || !b?.weight) break;
+    if (a.weight < b.weight) streak++;
+    else break;
+  }
+  return streak;
+}
+
+/* ====================== RENDER ====================== */
+function setTop(){
+  const d = fromKey(state.currentKey);
+  $('dateTop').textContent = fmtDateTop(d);
+  const day = state.cache[state.currentKey] || emptyDay();
+  const s = scoreForDay(day).total;
+  $('scoreTop').textContent = s;
+  $('streakNum').textContent = computeStreak(state.currentKey);
+  // também sincroniza o value do date picker
+  const dp = $('datePicker');
+  if (dp) dp.value = state.currentKey;
+}
+
+function renderAll(){
+  // garante que o dia atual existe em cache (sem sobrescrever hidratação!)
+  if (!state.cache[state.currentKey]) state.cache[state.currentKey] = emptyDay();
+  setTop();
+
+  const day = state.cache[state.currentKey];
+  const main = document.querySelector('main');
+  main.innerHTML = '';
+
+  // ==== PESO ====
+  const secPeso = document.createElement('section');
+  secPeso.innerHTML = `
+    <h2>⚖️ Peso</h2>
+    <div class="row">
+      <input id="inpWeight" type="number" step="0.01" placeholder="ex: 88.2" value="${day.weight??''}" style="max-width:160px" />
+      <div class="chip" id="btnSaveWeight">OK</div>
+      <span class="small muted">kg</span>
+    </div>
+    <div class="small" id="pesoInfo"></div>
+  `;
+  main.appendChild(secPeso);
+  const pesoInfo = () => {
+    const prevKey = (()=>{const d=fromKey(state.currentKey); d.setDate(d.getDate()-1); return toKey(d);})();
+    const ontem = state.cache[prevKey]?.weight;
+    const w = Number(state.cache[state.currentKey]?.weight||0);
+    const tgt = Number(state.config.weightTarget||0);
+    let delta = (ontem && w) ? (w - ontem) : null; // positivo: +, negativo: -
+    let falta = (w && tgt) ? (w - tgt) : null;
+    const fmt = (x) => (x===null||isNaN(x)) ? '—' : `${x.toFixed(1)} kg`;
+    let deltaStr = (delta===null) ? '—' : `${delta>0?'+':''}${delta.toFixed(1)} kg`;
+    let faltaStr = (falta===null) ? '—' : `${(falta>0?'+':'')}${falta.toFixed(1)} kg para chegar`;
+    $('#pesoInfo', secPeso)?.remove;
+    secPeso.querySelector('#pesoInfo').innerHTML =
+      `Ontem: ${fmt(ontem)} ${delta!==null ? (delta<0 ? '<span class="ok">(↓ '+deltaStr+')</span>' : '<span class="bad">(↑ '+deltaStr+')</span>') : ''}<br>` +
+      `Meta: ${fmt(tgt)} ${falta!==null ? '('+faltaStr+')' : ''}`;
+  };
+  pesoInfo();
+
+  secPeso.querySelector('#btnSaveWeight').onclick = () => {
+    const val = parseFloat(secPeso.querySelector('#inpWeight').value);
+    state.cache[state.currentKey].weight = isNaN(val) ? null : val;
+    saveLocal();
+    pesoInfo();
+    setTop();
+    SYNC.upsertToday(state.currentKey);
+  };
+
+  // ==== SONO ====
+  const sDay = scoreForDay(day);
+  const secSleep = document.createElement('section');
+  secSleep.innerHTML = `
+    <h2>😴 Sono <span class="secPts">${sDay.breakdown.sleep} / ${WEIGHTS.sleep}</span></h2>
+    <div class="grid g2">
+      <div class="col">
+        <span class="small muted">Horas dormidas</span>
+        <input id="sleepHours" type="number" inputmode="decimal" placeholder="ex: 6.5" value="${day.sleep.hours??''}">
+        <span class="small muted">Meta: ${state.config.metaSleepH} h ${Number(day.sleep.hours||0) >= state.config.metaSleepH ? '✓ <span class="ok">ok</span>' : '<span class="warn">↓ abaixo</span>'}</span>
+      </div>
+      <div class="col">
+        <span class="small muted">Qualidade</span>
+        <div class="stars" id="sleepStars">
+          ${[1,2,3].map(i=>`<div class="star ${i<=day.sleep.quality?'active':''}" data-v="${i}"><span>★</span></div>`).join('')}
+        </div>
+      </div>
+    </div>
+  `;
+  main.appendChild(secSleep);
+  secSleep.querySelector('#sleepHours').onchange = (e)=>{
+    const v = parseFloat(e.target.value);
+    state.cache[state.currentKey].sleep.hours = isNaN(v)?null:v;
+    saveLocal(); setTop(); renderAll();
+    SYNC.upsertToday(state.currentKey);
+  };
+  secSleep.querySelectorAll('#sleepStars .star').forEach(el=>{
+    el.onclick = ()=>{
+      const v = Number(el.dataset.v);
+      state.cache[state.currentKey].sleep.quality = v;
+      saveLocal(); setTop(); renderAll();
+      SYNC.upsertToday(state.currentKey);
+    };
+  });
+
+  // ==== ALIMENTAÇÃO ====
+  const meals = [
+    ['Café da manhã','breakfast'],
+    ['Lanche manhã','snack1'],
+    ['Almoço','lunch'],
+    ['Lanche tarde','snack2'],
+    ['Jantar','dinner']
+  ];
+  const secFood = document.createElement('section');
+  secFood.innerHTML = `
+    <h2>🍽️ Alimentação <span class="secPts">${sDay.breakdown.food} / ${WEIGHTS.food}</span></h2>
+    <div class="col" id="foodList"></div>
+    <footer class="note">Toque no nome para limpar.</footer>
+  `;
+  main.appendChild(secFood);
+  const foodList = secFood.querySelector('#foodList');
+  meals.forEach(([label,key])=>{
+    const row = document.createElement('div');
+    row.className = 'row';
+    row.innerHTML = `
+      <div class="smallish" style="min-width:140px;cursor:pointer">${label}</div>
+      <div class="stars">
+        ${[1,2,3].map(i=>`<div class="star ${i<= (day.food[key]||0) ? 'active':''}" data-k="${key}" data-v="${i}"><span>★</span></div>`).join('')}
+      </div>
+    `;
+    row.querySelector('.smallish').onclick = ()=>{
+      state.cache[state.currentKey].food[key] = 0;
+      saveLocal(); setTop(); renderAll(); SYNC.upsertToday(state.currentKey);
+    };
+    row.querySelectorAll('.star').forEach(st=>{
+      st.onclick = ()=>{
+        const v = Number(st.dataset.v), k = st.dataset.k;
+        state.cache[state.currentKey].food[k] = v;
+        saveLocal(); setTop(); renderAll(); SYNC.upsertToday(state.currentKey);
+      };
+    });
+    foodList.appendChild(row);
+  });
+
+  // ==== EXERCÍCIO ====
+  const secEx = document.createElement('section');
+  secEx.innerHTML = `
+    <h2>🏃 Exercício <span class="secPts">${sDay.breakdown.exercise} / ${WEIGHTS.exercise}</span></h2>
+    <div class="row">
+      ${['A','B','C'].map(n=>`<div class="chip" data-w="${n}" aria-pressed="${day.exercise.workout===n}">Treino ${n}</div>`).join('')}
+    </div>
+    <div class="col" style="margin-top:8px">
+      <span class="small muted">Caminhada (min)</span>
+      <input id="walkMin" type="number" placeholder="ex: 30" value="${day.exercise.walkMin||''}" />
+    </div>
+  `;
+  main.appendChild(secEx);
+  secEx.querySelectorAll('[data-w]').forEach(btn=>{
+    btn.onclick = ()=>{
+      const n = btn.dataset.w;
+      state.cache[state.currentKey].exercise.workout = (day.exercise.workout===n) ? '' : n;
+      saveLocal(); setTop(); renderAll(); SYNC.upsertToday(state.currentKey);
+    };
+  });
+  secEx.querySelector('#walkMin').onchange = (e)=>{
+    const v = parseInt(e.target.value||'0',10);
+    state.cache[state.currentKey].exercise.walkMin = isNaN(v)?0:v;
+    saveLocal(); setTop(); renderAll(); SYNC.upsertToday(state.currentKey);
+  };
+
+  // ==== MENTE ====
+  const secMind = document.createElement('section');
+  secMind.innerHTML = `
+    <h2>🧠 Mente <span class="secPts">${sDay.breakdown.mind} / ${WEIGHTS.mind}</span></h2>
+    <div class="row">
+      <div class="chip" data-m="read" aria-pressed="${day.mind.read}">📖 Leitura</div>
+      <div class="chip" data-m="book" aria-pressed="${day.mind.book}">✍️ Livro</div>
+      <div class="chip" data-m="meditate" aria-pressed="${day.mind.meditate}">🧘 Meditar</div>
+    </div>
+  `;
+  main.appendChild(secMind);
+  secMind.querySelectorAll('[data-m]').forEach(b=>{
+    b.onclick = ()=>{
+      const k = b.dataset.m;
+      // não tocar na hidratação aqui! (bug antigo corrigido)
+      state.cache[state.currentKey].mind[k] = !state.cache[state.currentKey].mind[k];
+      saveLocal(); setTop(); renderAll(); SYNC.upsertToday(state.currentKey);
+    };
+  });
+
+  // ==== HIDRATAÇÃO ====
+  const waterPct = Math.min(100, Math.round( (day.water.ml||0) / state.config.metaWaterML * 100 ));
+  const secWater = document.createElement('section');
+  secWater.innerHTML = `
+    <h2>💧 Hidratação <span class="secPts">${sDay.breakdown.water} / ${WEIGHTS.water}</span></h2>
+    <div class="row">
+      <div class="chip" id="btnAddWater">+ ${state.config.cupML} ml</div>
+      <div class="chip" id="btnSubWater">−1 copo</div>
+      <div class="right smallish muted">${waterPct}%</div>
+    </div>
+    <div class="row" style="margin-top:6px">
+      <progress max="${state.config.metaWaterML}" value="${day.water.ml||0}"></progress>
+      <div class="right numRight smallish muted">${day.water.ml||0} / ${state.config.metaWaterML} ml</div>
+    </div>
+  `;
+  main.appendChild(secWater);
+  secWater.querySelector('#btnAddWater').onclick = ()=>{
+    state.cache[state.currentKey].water.ml = (state.cache[state.currentKey].water.ml||0) + state.config.cupML;
+    saveLocal(); setTop(); renderAll(); SYNC.upsertToday(state.currentKey);
+  };
+  secWater.querySelector('#btnSubWater').onclick = ()=>{
+    state.cache[state.currentKey].water.ml = Math.max(0, (state.cache[state.currentKey].water.ml||0) - state.config.cupML);
+    saveLocal(); setTop(); renderAll(); SYNC.upsertToday(state.currentKey);
+  };
+
+  // ==== BEBIDAS (não afeta nota) ====
+  const secBev = document.createElement('section');
+  const coffee = day.drinks.coffee||0, alcohol = day.drinks.alcohol||0;
+  const coffeeClass = coffee===0?'ok': (coffee<=state.config.coffeeLimit?'warn':'bad');
+  const alcoholClass = alcohol===0?'ok': (alcohol<=state.config.alcoholLimit?'warn':'bad');
+  secBev.innerHTML = `
+    <h2>🥤 Bebidas</h2>
+    <div class="bevGrid">
+      <div>☕ Café</div>
+      <div class="chip" id="cPlus">+1</div>
+      <div class="chip" id="cMinus">−1</div>
+      <div class="small muted">—</div>
+      <div class="numRight ${coffeeClass}">${coffee}</div>
+    </div>
+    <div class="bevGrid">
+      <div>🍷 Álcool</div>
+      <div class="chip" id="aPlus">+1</div>
+      <div class="chip" id="aMinus">−1</div>
+      <div class="small muted">—</div>
+      <div class="numRight ${alcoholClass}">${alcohol}</div>
+    </div>
+    <footer class="note">Não afetam a nota. Limites em configurações.</footer>
+  `;
+  main.appendChild(secBev);
+  secBev.querySelector('#cPlus').onclick = ()=>{
+    state.cache[state.currentKey].drinks.coffee = (state.cache[state.currentKey].drinks.coffee||0)+1;
+    saveLocal(); renderAll(); SYNC.upsertToday(state.currentKey);
+  };
+  secBev.querySelector('#cMinus').onclick = ()=>{
+    state.cache[state.currentKey].drinks.coffee = Math.max(0,(state.cache[state.currentKey].drinks.coffee||0)-1);
+    saveLocal(); renderAll(); SYNC.upsertToday(state.currentKey);
+  };
+  secBev.querySelector('#aPlus').onclick = ()=>{
+    state.cache[state.currentKey].drinks.alcohol = (state.cache[state.currentKey].drinks.alcohol||0)+1;
+    saveLocal(); renderAll(); SYNC.upsertToday(state.currentKey);
+  };
+  secBev.querySelector('#aMinus').onclick = ()=>{
+    state.cache[state.currentKey].drinks.alcohol = Math.max(0,(state.cache[state.currentKey].drinks.alcohol||0)-1);
+    saveLocal(); renderAll(); SYNC.upsertToday(state.currentKey);
+  };
+
+  // ==== HISTÓRICO (compacto, 1 linha) ====
+  const secHist = document.createElement('section');
+  const keys = Object.keys(state.cache).sort().reverse(); // mais novo primeiro
+  // médias
+  let sumScore=0, nScore=0, sumWeight=0, nWeight=0;
+  keys.forEach(k=>{
+    const s = scoreForDay(state.cache[k]).total;
+    if (s>0){ sumScore+=s; nScore++; }
+    const w = state.cache[k].weight;
+    if (typeof w==='number'){ sumWeight+=w; nWeight++; }
+  });
+  const avgScore = nScore? Math.round(sumScore/nScore): '—';
+  const avgWeight = nWeight? (sumWeight/nWeight).toFixed(1)+' kg' : '—';
+  secHist.innerHTML = `
+    <h2>📚 Histórico</h2>
+    <div class="histHead small muted">
+      <div><span class="histColLabel">Data</span><br><span class="histAvg">média</span></div>
+      <div><span class="histColLabel">Nota</span><br><span class="histAvg">${avgScore}</span></div>
+      <div><span class="histColLabel">Ícones</span></div>
+      <div class="numRight"><span class="histColLabel">Peso</span><br><span class="histAvg">${avgWeight}</span></div>
+    </div>
+    <div id="histList" class="col"></div>
+  `;
+  main.appendChild(secHist);
+  const histList = secHist.querySelector('#histList');
+  keys.forEach(k=>{
+    const d = fromKey(k);
+    const line = document.createElement('div');
+    const sc = scoreForDay(state.cache[k]).total;
+    // ícones: mente (se marcou), café/álcool com asterisco se passou limite
+    const icons = [];
+    const m = state.cache[k].mind||{};
+    if (m.read||m.book||m.meditate) icons.push('🧠');
+    const cof = state.cache[k].drinks?.coffee||0;
+    if (cof>0) icons.push('☕' + (cof>state.config.coffeeLimit ? '﹡' : ''));
+    const alc = state.cache[k].drinks?.alcohol||0;
+    if (alc>0) icons.push('🍷' + (alc>state.config.alcoholLimit ? '﹡' : ''));
+    const w = state.cache[k].weight;
+
+    line.className = 'histRow';
+    line.innerHTML = `
+      <div class="smallish">${pad(d.getDate())}/${['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'][d.getMonth()]}</div>
+      <div class="smallish">${sc||'—'}</div>
+      <div class="histIcons smallish">${icons.join(' ')||'—'}</div>
+      <div class="numRight smallish">${(typeof w==='number')? (w.toFixed(1)+ ' kg') : '—'}</div>
+    `;
+    line.onclick = ()=>{ state.currentKey = k; renderAll(); };
+    histList.appendChild(line);
   });
 }
+
+/* ====================== CABEÇALHO E DATA PICKER ====================== */
+function initHeader(){
+  // preencher topo
+  setTop();
+  const dateTop = $('dateTop');
+  const dp = $('datePicker');
+  if (dateTop && dp){
+    dateTop.onclick = ()=>{
+      dp.value = state.currentKey;
+      dp.style.display = (dp.style.display==='block' ? 'none' : 'block');
+      if (dp.showPicker) dp.showPicker();
+    };
+    dp.onchange = ()=>{
+      if (dp.value){
+        state.currentKey = dp.value;
+        renderAll();
+      }
+      dp.style.display='none';
+    };
+  }
+}
+
+/* ====================== BOOT ====================== */
+(function boot(){
+  loadLocal();
+  initHeader();
+  AUTH.init(); // inicia supabase + healthcheck
+  renderAll();
+
+  // registra SW (PWA)
+  if ('serviceWorker' in navigator){
+    navigator.serviceWorker.register('./sw.js');
+  }
+
+  // quando voltar ao foco da aba: puxa campanha e recalcula
+  window.addEventListener('focus', async ()=>{
+    if (state.auth.user) { await SYNC.pullCampaign(); }
+    renderAll();
+  });
+})();
