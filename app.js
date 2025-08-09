@@ -1,3 +1,4 @@
+// Vida+ v4.7 — com Supabase opcional (login por magic link + sync simples)
 /* Vida+ JS v4.6 (compact build) */
 (()=>{
 const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
@@ -107,3 +108,22 @@ function boot(){ $('#cupLbl').textContent=CFG.cup; $('#hProg').max=CFG.waterGoal
 if('serviceWorker' in navigator){ navigator.serviceWorker.register('./sw.js?v=460').catch(()=>{}); }
 boot(); document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'){renderAll()}});
 })();
+
+// Date picker: tap dateTop to show, change to jump
+const dateTopEl = document.getElementById('dateTop');
+const datePicker = document.getElementById('datePicker');
+if (dateTopEl && datePicker){
+  dateTopEl.addEventListener('click', ()=>{
+    datePicker.value = (state.currentKey||new Date().toISOString().slice(0,10));
+    datePicker.style.display = datePicker.style.display==='none' ? 'block' : 'none';
+    datePicker.showPicker && datePicker.showPicker();
+  });
+  datePicker.addEventListener('change', ()=>{
+    const d = datePicker.value;
+    if(d){
+      state.currentKey = d;
+      renderAll();
+      datePicker.style.display='none';
+    }
+  });
+}
