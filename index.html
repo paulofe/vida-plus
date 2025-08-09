@@ -1,56 +1,189 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Vida+ (v4.4.2 hotfix)</title>
-  <meta name="theme-color" content="#0e0f12">
-  <link rel="manifest" href="manifest.webmanifest">
-  <style>
-    :root{ --pad:14px; --radius:14px; --font:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,"Apple Color Emoji","Segoe UI Emoji"; }
-    *{box-sizing:border-box}
-    html,body{ overflow-x:hidden }
-    body{ font-family:var(--font); margin:0; background:#0e0f12; color:#f2f2f2; line-height:1.35; }
-    header{ padding:10px var(--pad); position:sticky; top:0; z-index:1000;
-            background:#0e0f12cc; backdrop-filter: blur(6px); border-bottom:1px solid #2a2d33;
-            display:grid; grid-template-columns: 1fr auto 1fr; align-items:center; gap:10px; }
-    h1{margin:0;font-size:22px;}
-    .centerWrap{ display:flex; align-items:center; justify-content:center; gap:10px; min-width:120px }
-    .scorePill{ padding:0 2px; font-weight:800; font-variant-numeric:tabular-nums; min-width:36px; text-align:center; font-size:18px }
-    .dateTop{justify-self:end; opacity:.9;font-size:14px}
-    main{ display:grid; gap:16px; max-width:820px; margin:0 auto;
-          padding-left:max(var(--pad), env(safe-area-inset-left));
-          padding-right:max(var(--pad), env(safe-area-inset-right));
-          padding-top:var(--pad); padding-bottom:120px; }
-    section{ background:#15171c;border:1px solid #2a2d33;border-radius:var(--radius); padding:12px }
-    section h2{margin:0 0 8px 0; font-size:16px; display:flex; align-items:center; gap:10px}
-    .grid{display:grid; gap:10px}
-    .g2{grid-template-columns:1fr 1fr}
-    .row{display:flex; gap:10px; align-items:center; flex-wrap:wrap}
-    .chip{ border:1px solid #3a3f47;padding:8px 10px;border-radius:12px; cursor:pointer; user-select:none; background:#15171c; color:#f2f2f2;}
-    input[type=text],input[type=email]{ background:#0f1115;border:1px solid #2a2d33;border-radius:10px;color:#f2f2f2;padding:10px; width:100% }
-    .btn{ background:#1f6feb;border:0;border-radius:12px;color:white;padding:12px 14px; font-weight:600; cursor:pointer; width:100%; }
-    .btn.secondary{background:#242832; border:1px solid #3a3f47}
-    footer.note{ font-size:12px; opacity:.6; margin-top:6px }
-    .status{font-size:12px; opacity:.85}
-    details summary{cursor:pointer}
-  </style>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Vida+ (v4.5.0)</title>
+<meta name="theme-color" content="#0e0f12">
+<link rel="manifest" href="manifest.webmanifest">
+<style>
+:root{ --pad:14px; --radius:14px; --font:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,"Apple Color Emoji","Segoe UI Emoji"; }
+*{box-sizing:border-box}
+html,body{ overflow-x:hidden }
+body{ font-family:var(--font); margin:0; background:#0e0f12; color:#f2f2f2; line-height:1.35; }
+header{ padding:10px var(--pad); position:sticky; top:0; z-index:1000;
+        background:#0e0f12cc; backdrop-filter: blur(6px); border-bottom:1px solid #2a2d33;
+        display:grid; grid-template-columns: 1fr auto 1fr; align-items:center; gap:10px; }
+h1{margin:0;font-size:22px;}
+.centerWrap{ display:flex; align-items:center; justify-content:center; gap:10px; min-width:150px }
+.score{ font-weight:800; font-variant-numeric:tabular-nums; font-size:18px }
+.outOf{ font-size:12px; opacity:.6; margin-left:3px }
+.streak{ font-size:12px; border:1px solid #3a3f47; border-radius:999px; padding:4px 8px; display:flex; align-items:center; gap:6px }
+.dateTop{justify-self:end; opacity:.9;font-size:14px}
+main{ display:grid; gap:16px; max-width:820px; margin:0 auto;
+      padding-left:max(var(--pad), env(safe-area-inset-left));
+      padding-right:max(var(--pad), env(safe-area-inset-right));
+      padding-top:var(--pad); padding-bottom:120px; }
+section{ background:#15171c;border:1px solid #2a2d33;border-radius:var(--radius); padding:12px }
+section h2{margin:0 0 8px 0; font-size:16px; display:flex; align-items:center; gap:10px}
+.secPts{ font-size:12px; opacity:.85; padding:2px 8px; border:1px solid #3a3f47; border-radius:999px; }
+.grid{display:grid; gap:10px}
+.g2{grid-template-columns:1fr 1fr}
+.row{display:flex; gap:10px; align-items:center; flex-wrap:wrap}
+.col{display:grid; gap:10px}
+.chip{ border:1px solid #3a3f47;padding:8px 10px;border-radius:12px; cursor:pointer; user-select:none; background:#15171c; color:#f2f2f2;}
+.chip[aria-pressed="true"]{background:#2a2f37; border-color:#7aa7ff}
+input[type=number], input[type=text], input[type=email]{ background:#0f1115;border:1px solid #2a2d33;border-radius:10px;color:#f2f2f2;padding:10px; }
+.small{font-size:12px; opacity:.75}
+.smallish{font-size:13px}
+.right{margin-left:auto}
+.muted{opacity:.7}
+.stars{ display:flex; gap:8px; }
+.star{ width:28px; height:28px; display:flex; align-items:center; justify-content:center; cursor:pointer; }
+.star span{ color:#444; } .star.active span{ color:#FFD24D; }
+#sleepHours{ padding:8px 10px; font-size:15px; max-width:140px }
+progress{ width:100%; height:8px; }
+.bevGrid{ display:grid; grid-template-columns:76px 58px 58px minmax(0,1fr) 30px; gap:8px; align-items:center }
+.bevNum{ text-align:right }
+.numRight{ text-align:right; font-variant-numeric:tabular-nums }
+.ok{color:#58d68d} .warn{color:#f4d03f} .bad{color:#ff6b6b}
+footer.note{ font-size:12px; opacity:.6; margin-top:6px }
+.histHead{ display:grid; grid-template-columns:70px 50px minmax(0,1fr) 90px; gap:8px; padding:0 8px 6px 8px; align-items:end; }
+.histColLabel{ font-size:10.5px; opacity:.8 }
+.histAvg{ font-size:11.5px; opacity:.9 }
+.histRow{ display:grid; grid-template-columns:70px 50px minmax(0,1fr) 90px; align-items:center; gap:8px; padding:7px 8px; border:1px dashed #3a3f47; border-radius:12px; white-space:nowrap; }
+.histIcons{ display:flex; gap:8px; justify-content:flex-start; align-items:center; min-width:0 }
+.mini{ font-size:11px; opacity:.9; vertical-align:middle }
+.btn{ background:#1f6feb;border:0;border-radius:12px;color:white;padding:12px 14px; font-weight:600; cursor:pointer; width:100%; }
+.btn.secondary{background:#242832; border:1px solid #3a3f47}
+details summary{cursor:pointer}
+</style>
 </head>
 <body>
-<header>
+<header id="hdr">
   <h1>Vida+</h1>
   <div class="centerWrap">
-    <div id="scoreTop" class="scorePill">—</div>
+    <div id="scoreTop" class="score">—<span class="outOf">/100</span></div>
+    <div id="streakTop" class="streak">🔥 <span id="streakNum">0</span></div>
   </div>
   <div id="dateTop" class="dateTop"></div>
 </header>
 
 <main>
+  <section id="weight">
+    <h2>⚖️ Peso</h2>
+    <div class="grid g2">
+      <div>
+        <div class="row" style="flex-wrap:nowrap">
+          <input style="max-width:140px" type="number" id="weightToday" inputmode="decimal" step="0.1" placeholder="ex: 88,2">
+          <span class="muted smallish">kg</span>
+          <button id="saveWeight" class="chip">OK</button>
+        </div>
+        <div id="rowYesterday" class="small" style="display:none">Ontem: <span id="weightPrev"></span> <span id="weightDeltaTxt" class="muted"></span></div>
+        <div class="small">Meta: <span id="weightGoalLabel">—</span> (<span id="weightToGo">—</span> para chegar)</div>
+      </div>
+    </div>
+  </section>
+
+  <section id="sleep">
+    <h2>😴 Sono <span class="secPts" id="ptsSleep">0 / 30</span></h2>
+    <div class="grid g2">
+      <div>
+        <label class="small muted">Horas dormidas</label>
+        <input type="number" id="sleepHours" inputmode="decimal" min="0" step="0.25" placeholder="ex: 6,5">
+        <div class="small">Meta: <span id="sleepGoalLabel"></span> h <span id="sleepStatus" class="muted"></span></div>
+      </div>
+      <div>
+        <label class="small muted">Qualidade</label>
+        <div class="stars" id="sleepQualityStars">
+          <div class="star"><span>★</span></div>
+          <div class="star"><span>★</span></div>
+          <div class="star"><span>★</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="meals">
+    <h2>🍽️ Alimentação <span class="secPts" id="ptsMeals">0 / 45</span></h2>
+    <div class="col" id="mealsList">
+      <div class="mealRow" data-key="cafe"><div class="row"><div class="mealName" style="min-width:120px">Café da manhã</div><div class="stars"><div class="star"><span>★</span></div><div class="star"><span>★</span></div><div class="star"><span>★</span></div></div></div></div>
+      <div class="mealRow" data-key="lanche_manha"><div class="row"><div class="mealName" style="min-width:120px">Lanche manhã</div><div class="stars"><div class="star"><span>★</span></div><div class="star"><span>★</span></div><div class="star"><span>★</span></div></div></div></div>
+      <div class="mealRow" data-key="almoco"><div class="row"><div class="mealName" style="min-width:120px">Almoço</div><div class="stars"><div class="star"><span>★</span></div><div class="star"><span>★</span></div><div class="star"><span>★</span></div></div></div></div>
+      <div class="mealRow" data-key="lanche_tarde"><div class="row"><div class="mealName" style="min-width:120px">Lanche tarde</div><div class="stars"><div class="star"><span>★</span></div><div class="star"><span>★</span></div><div class="star"><span>★</span></div></div></div></div>
+      <div class="mealRow" data-key="jantar"><div class="row"><div class="mealName" style="min-width:120px">Jantar</div><div class="stars"><div class="star"><span>★</span></div><div class="star"><span>★</span></div><div class="star"><span>★</span></div></div></div></div>
+    </div>
+    <footer class="note">Toque no nome para limpar.</footer>
+  </section>
+
+  <section id="exercise">
+    <h2>🏃 Exercício <span class="secPts" id="ptsExercise">0 / 15</span></h2>
+    <div class="col">
+      <div class="small muted" id="prevWorkout"></div>
+      <div class="row">
+        <span class="chip" id="exoA" aria-pressed="false">Treino A</span>
+        <span class="chip" id="exoB" aria-pressed="false">Treino B</span>
+        <span class="chip" id="exoC" aria-pressed="false">Treino C</span>
+      </div>
+      <div class="grid g2">
+        <div>
+          <label class="small muted">Caminhada (min)</label>
+          <input type="number" id="exerciseMins" min="0" step="5" placeholder="ex: 30">
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="mind">
+    <h2>🧠 Mente <span class="secPts" id="ptsMind">0 / 5</span></h2>
+    <div class="row" id="mindRow" style="gap:8px">
+      <span class="chip" id="optReading" aria-pressed="false" style="padding:7px 10px;font-size:14px">📖 Ler</span>
+      <span class="chip" id="optBook" aria-pressed="false" style="padding:7px 10px;font-size:14px">✍️ Livro</span>
+      <span class="chip" id="optMeditation" aria-pressed="false" style="padding:7px 10px;font-size:14px">🧘 Meditar</span>
+    </div>
+  </section>
+
+  <section id="hydration">
+    <h2>💧 Hidratação <span class="secPts" id="ptsHydration">0 / 10</span></h2>
+    <div class="row">
+      <button class="chip" id="undoWater">−1 copo</button>
+      <button class="chip" id="btnCup">+ <span id="cupLabel">250</span> ml</button>
+      <div class="right small" id="waterPct" style="opacity:.7">0%</div>
+    </div>
+    <div class="row" style="margin-top:6px; align-items:center;">
+      <div style="flex:1"><progress id="waterProgress" max="2500" value="0"></progress></div>
+      <div class="right small muted" id="waterTotalWrap"><span id="waterTotal">0</span> / <span id="waterGoal">2500</span> ml</div>
+    </div>
+  </section>
+
+  <section id="beverages">
+    <h2>🥤 Bebidas</h2>
+    <div class="bevGrid">
+      <div>☕ Café</div>
+      <button class="chip" id="coffeeUndo">−1</button>
+      <button class="chip" id="coffeeAdd">+1</button>
+      <div id="coffeeIcons" class="small">—</div>
+      <div id="coffeeCountWrap" class="bevNum small">0</div>
+    </div>
+    <div class="bevGrid" style="margin-top:6px">
+      <div>🍷 Álcool</div>
+      <button class="chip" id="alcoholUndo">−1</button>
+      <button class="chip" id="alcoholAdd">+1</button>
+      <div id="alcoholIcons" class="small">—</div>
+      <div id="alcoholCountWrap" class="bevNum small">0</div>
+    </div>
+    <footer class="note">Não afetam a nota. Limites em configurações.</footer>
+  </section>
+
   <section id="actions">
     <h2>⚙️ Ações</h2>
-    <details open>
+    <div class="grid g2">
+      <button id="saveBtn" class="btn">Salvar agora</button>
+      <button id="closeDayBtn" class="btn secondary">Fechar o dia</button>
+    </div>
+    <details>
       <summary>Configurações</summary>
-      <div class="status" id="cloudStatus">☁️ Cloud: desligado</div>
+      <div class="small" id="cloudStatus">☁️ Cloud: desligado</div>
       <div class="grid g2" style="margin-top:8px">
         <div>
           <label class="small muted">Supabase URL</label>
@@ -71,126 +204,442 @@
           <button class="chip" id="btnLogout">Sair</button>
         </div>
       </div>
+      <div class="grid g2" style="margin-top:8px">
+        <div>
+          <label class="small muted">Meta de sono (h)</label>
+          <input type="number" id="cfgSleepGoal" min="4" max="9" step="0.25">
+        </div>
+        <div>
+          <label class="small muted">Meta de água (ml)</label>
+          <input type="number" id="cfgWaterGoal" min="1000" max="5000" step="100">
+        </div>
+      </div>
+      <div class="grid g2" style="margin-top:8px">
+        <div>
+          <label class="small muted">Peso alvo (kg)</label>
+          <input type="number" id="cfgWeightGoal" step="0.1">
+        </div>
+        <div>
+          <label class="small muted">Copo padrão (ml)</label>
+          <input type="number" id="cfgCup" step="10" min="100" max="1000">
+        </div>
+      </div>
+      <div class="grid g2" style="margin-top:8px">
+        <div>
+          <label class="small muted">Data inicial da campanha</label>
+          <input type="date" id="cfgStartDate">
+        </div>
+        <div>
+          <label class="small muted">Limite ☕ café</label>
+          <input type="number" id="cfgCoffeeLimit" min="0" step="1">
+        </div>
+      </div>
+      <div class="grid g2" style="margin-top:8px">
+        <div>
+          <label class="small muted">Limite 🍷 álcool</label>
+          <input type="number" id="cfgAlcoholLimit" min="0" step="1">
+        </div>
+        <div>
+          <label class="small muted">Nomes dos treinos</label>
+          <div class="row">
+            <input type="text" id="cfgNameA" placeholder="Treino A" style="max-width:140px">
+            <input type="text" id="cfgNameB" placeholder="Treino B" style="max-width:140px">
+            <input type="text" id="cfgNameC" placeholder="Treino C" style="max-width:140px">
+          </div>
+        </div>
+      </div>
       <div class="row" style="margin-top:8px">
         <button class="chip" id="btnReset">Corrigir cache</button>
       </div>
     </details>
   </section>
 
-  <section>
-    <h2>🧪 Testes rápidos</h2>
-    <div class="row">
-      <button class="chip" id="btnPing">Testar conexão Supabase</button>
+  <section id="history">
+    <h2>📚 Histórico</h2>
+    <div class="histHead">
+      <div></div>
+      <div class="numRight">
+        <div class="histColLabel">Nota</div>
+        <div class="histAvg" id="avgNote">—</div>
+      </div>
+      <div>
+        <div class="histColLabel">Ícones</div>
+        <div class="histAvg" id="avgIcons"> </div>
+      </div>
+      <div class="numRight">
+        <div class="histColLabel">Peso</div>
+        <div class="histAvg" id="avgWeight">—</div>
+      </div>
     </div>
-    <footer class="note">Se o botão acima mostrar "OK", o projeto e as chaves estão válidos.</footer>
+    <div id="historyList" class="col"></div>
   </section>
 </main>
 
-<script>
-// ---- helpers
-const DEFAULTS = { sbUrl:"", sbKey:"" };
-const el = id => document.getElementById(id);
-function loadSettings(){
-  try{ return { ...DEFAULTS, ...(JSON.parse(localStorage.getItem("vida_plus_settings")||"{}")) }; }
-  catch(e){ return {...DEFAULTS}; }
-}
-function saveSettings(s){
-  try{ localStorage.setItem("vida_plus_settings", JSON.stringify(s)); } catch(e){}
-}
-function fmtDateTop(){
-  const d=new Date(); const m=["jan","fev","mar","abr","mai","jun","jul","ago","set","out","nov","dez"][d.getMonth()];
-  const w=["dom","seg","ter","qua","qui","sex","sáb"][d.getDay()];
-  const dd=("0"+d.getDate()).slice(-2); return dd+"/"+m+" ("+w+")";
-}
-
-// ---- UI init
-el("dateTop").textContent = fmtDateTop();
-el("scoreTop").textContent = "0"; // placeholder
-
-// ---- Service Worker
-if('serviceWorker' in navigator){
-  navigator.serviceWorker.register('./sw.js').catch(()=>{});
-}
-
-// ---- Supabase (JS v2) lazy init
-let sb = null;
-let sbUser = null;
-function ensureSb(){
-  const s = loadSettings();
-  if(!s.sbUrl || !s.sbKey) return null;
-  if(sb) return sb;
-  // load via global from CDN (added below)
-  sb = window.supabase.createClient(s.sbUrl.trim(), s.sbKey.trim());
-  return sb;
-}
-
-// ---- Buttons
-el("btnReset").onclick = async () => {
-  if(confirm("Limpar cache e recarregar?")){
-    try {
-      const regs = await navigator.serviceWorker.getRegistrations();
-      for(const r of regs) await r.unregister();
-    } catch(e){}
-    localStorage.clear();
-    location.reload();
-  }
-};
-
-el("btnLogin").onclick = async () => {
-  const s = loadSettings();
-  s.sbUrl = el("cfgSbUrl").value.trim();
-  s.sbKey = el("cfgSbKey").value.trim();
-  const email = el("cfgEmail").value.trim();
-  saveSettings(s);
-
-  if(!s.sbUrl || !s.sbKey){ alert("Preencha URL e anon key do Supabase."); return; }
-  if(!email){ alert("Informe seu e-mail."); return; }
-
-  try{
-    const client = ensureSb();
-    if(!client){ alert("Configuração inválida."); return; }
-
-    const { data, error } = await client.auth.signInWithOtp({
-      email,
-      options: {
-        shouldCreateUser: true,
-        emailRedirectTo: location.origin + location.pathname
-      }
-    });
-    if(error) throw error;
-    alert("Link de login enviado para "+email+". Abra no mesmo dispositivo.");
-  }catch(err){
-    alert("Erro ao enviar link: " + (err.message||err));
-  }
-};
-
-el("btnLogout").onclick = async () => {
-  const client = ensureSb();
-  if(!client){ alert("Sem Supabase configurado."); return; }
-  await client.auth.signOut();
-  alert("Sessão encerrada.");
-};
-
-el("btnPing").onclick = async () => {
-  const client = ensureSb();
-  if(!client){ alert("Configure URL e anon key primeiro."); return; }
-  try{
-    // tentativa de ping simples: pedir sessão atual
-    const { data, error } = await client.auth.getSession();
-    if(error){ alert("Erro: " + error.message); return; }
-    alert("OK: cliente inicializado");
-  }catch(e){
-    alert("Cliente inicializado.");
-  }
-};
-
-// ---- hydrate settings UI
-(function fill(){
-  const s = loadSettings();
-  el("cfgSbUrl").value = s.sbUrl || "";
-  el("cfgSbKey").value = s.sbKey || "";
-})();
-</script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+// ---------- Helpers & storage ----------
+const WEIGHTS = { sleep: 0.30, meals: 0.45, exercise: 0.15, hydration: 0.10, mind: 0.05 };
+const MIND_SPLIT = { read: 0.40, book: 0.30, meditation: 0.30 };
+const DEFAULTS = { sleepGoal: 7.0, waterGoal: 2500, weightGoal: 81.0, cup: 250,
+                   nameA:"Treino A", nameB:"Treino B", nameC:"Treino C",
+                   startDate: new Date().toISOString().slice(0,10),
+                   coffeeLimit: 3, alcoholLimit: 2,
+                   sbUrl:"", sbKey:"" };
+const MEAL_KEYS = ["cafe","lanche_manha","almoco","lanche_tarde","jantar"];
+const MEAL_SCORES = { 3: 1.0, 2: 0.6, 1: 0.0, 0: 0.0 };
+
+const el = (id)=>document.getElementById(id);
+const todayKey = ()=> new Date().toISOString().slice(0,10);
+let currentKey = todayKey();
+
+function loadSettings(){ try{ return { ...DEFAULTS, ...(JSON.parse(localStorage.getItem("vida_plus_settings")||"{}")) }; }catch(e){ return {...DEFAULTS}; } }
+function saveSettings(s){ try{ localStorage.setItem("vida_plus_settings", JSON.stringify(s)); }catch(e){} }
+function loadDay(key=currentKey){ try{ return JSON.parse(localStorage.getItem("vida_plus_"+key) || "{}"); }catch(e){ return {}; } }
+function saveDay(data,key=currentKey){
+  const prev = loadDay(key);
+  const merged = { ...prev, ...data, updated_at: new Date().toISOString(), dateKey:key };
+  localStorage.setItem("vida_plus_"+key, JSON.stringify(merged));
+  renderScore(); renderSectionPoints(); renderHistory();
+  sbUpsertDay(key).catch(()=>{});
+}
+
+function shortDate(key){ const d=new Date(key+"T12:00:00Z"); const m=["jan","fev","mar","abr","mai","jun","jul","ago","set","out","nov","dez"]; const w=["dom","seg","ter","qua","qui","sex","sáb"]; const dd=("0"+d.getUTCDate()).slice(-2); return dd+"/"+m[d.getUTCMonth()]+" ("+w[d.getUTCDay()]+")"; }
+function formatKg(n){ return (n==null || isNaN(n))? "—" : (Math.round(n*10)/10).toFixed(1) + " kg"; }
+
+// ---------- Supabase (opcional) ----------
+let sb=null, sbUser=null;
+function sbInitFromSettings(){ const s=loadSettings(); if(s.sbUrl && s.sbKey){ sb = supabase.createClient(s.sbUrl.trim(), s.sbKey.trim()); } }
+async function sbLogin(email){
+  if(!sb){ alert("Preencha URL e anon key do Supabase."); return; }
+  const { error } = await sb.auth.signInWithOtp({ email, options:{ shouldCreateUser:true, emailRedirectTo: location.origin + location.pathname } });
+  if(error) alert("Erro: "+error.message); else alert("Link enviado para "+email+".");
+}
+async function sbLogout(){ if(!sb) return; await sb.auth.signOut(); sbUser=null; renderCloudStatus(); }
+async function sbCheck(){ if(!sb) return; const { data:{session} } = await sb.auth.getSession(); sbUser=session?.user||null; renderCloudStatus(); if(sbUser) await sbSyncDown(); }
+function renderCloudStatus(){ el("cloudStatus").textContent = !sb ? "☁️ Cloud: desligado" : (sbUser? "☁️ Cloud: conectado" : "☁️ Cloud: pronto (não logado)"); }
+async function sbUpsertDay(key){ if(!sb||!sbUser) return; const payload = loadDay(key); await sb.from("vida_entries").upsert({ user_id: sbUser.id, date_key:key, payload, updated_at:new Date().toISOString() }); }
+async function sbSyncDown(){
+  const s=loadSettings(); if(!sb||!sbUser) return;
+  const { data, error } = await sb.from("vida_entries").select("date_key,payload,updated_at").eq("user_id", sbUser.id).gte("date_key", s.startDate||todayKey()).order("date_key",{ascending:true});
+  if(error) return;
+  data.forEach(r=>{
+    const local = loadDay(r.date_key);
+    if(!local.updated_at || r.updated_at > local.updated_at){
+      localStorage.setItem("vida_plus_"+r.date_key, JSON.stringify(r.payload));
+    }
+  });
+  loadDayIntoUI(currentKey); renderHistory(); renderScore(); renderSectionPoints();
+}
+
+// ---------- Scoring ----------
+function sleepScore(hours, quality, goal){ if(!hours) return 0; const ratio = Math.min(hours/goal, goal/hours); const q=(quality||0)/3; return Math.max(0, Math.min(1, ratio*q)); }
+function mealsScore(mealRatings){ const arr = MEAL_KEYS.map(k => MEAL_SCORES[mealRatings?.[k] || 0]); const sum = arr.reduce((a,b)=>a+b,0); return sum / arr.length; }
+function exerciseScore(muscs, walkMins){ const walk=Math.min((walkMins||0)/30,1)*0.60; const mus=(muscs.A||muscs.B||muscs.C)?0.40:0; return Math.min(1, walk+mus); }
+function mindScore(flags){ let s=0; if(flags.read) s+=MIND_SPLIT.read; if(flags.book) s+=MIND_SPLIT.book; if(flags.meditation) s+=MIND_SPLIT.meditation; return Math.min(1,s); }
+function hydrationScore(total, goal){ if(!goal) return 0; return Math.min(1, (total||0)/goal); }
+
+function computeParts(d){
+  const s=loadSettings();
+  const parts01 = {
+    sleep: sleepScore(d.sleepHours||0, d.sleepQuality||0, s.sleepGoal),
+    meals: mealsScore(d.mealRatings||{}),
+    exercise: exerciseScore(d.muscs||{A:false,B:false,C:false}, d.exerciseMins||0),
+    mind: mindScore(d.mind||{read:false,book:false,meditation:false}),
+    hydration: hydrationScore(d.waterTotal||0, s.waterGoal)
+  };
+  const partsPts = {
+    sleep: Math.round(parts01.sleep * WEIGHTS.sleep * 100),
+    meals: Math.round(parts01.meals * WEIGHTS.meals * 100),
+    exercise: Math.round(parts01.exercise * WEIGHTS.exercise * 100),
+    mind: Math.round(parts01.mind * WEIGHTS.mind * 100),
+    hydration: Math.round(parts01.hydration * WEIGHTS.hydration * 100)
+  };
+  const total = partsPts.sleep + partsPts.meals + partsPts.exercise + partsPts.mind + partsPts.hydration;
+  return { parts01, partsPts, total };
+}
+function computeScore(d){ return computeParts(d).total; }
+
+// streak = dias consecutivos com redução de peso
+function calcStreak(){
+  let streak=0, prev=null;
+  for(let i=0;i<365;i++){
+    const dt = new Date(Date.now()-i*86400000);
+    const key = dt.toISOString().slice(0,10);
+    const d = loadDay(key);
+    if(d.weight==null){ if(i===0) { prev=null; continue; } break; }
+    if(i===0){ prev=d.weight; streak=1; continue; }
+    if(prev!=null && d.weight < prev){ streak++; prev=d.weight; } else { break; }
+  }
+  el("streakNum").textContent = Math.max(0, streak-1);
+}
+
+// ---------- UI binding ----------
+function setPressed(elem, val){ elem.setAttribute("aria-pressed", val ? "true" : "false"); }
+function getPressed(elem){ return elem.getAttribute("aria-pressed")==="true"; }
+
+function buildStars(container, onChange){
+  const nodes=[...container.querySelectorAll(".star")];
+  function set(n){ nodes.forEach((node,i)=>{ if(i<n) node.classList.add("active"); else node.classList.remove("active"); }); onChange && onChange(n); }
+  nodes.forEach((node,i)=>{ node.onclick=()=>set(i+1); });
+}
+
+function readUI(){
+  const mealRatings = {};
+  document.querySelectorAll("#mealsList .mealRow").forEach(row=>{
+    const key = row.getAttribute("data-key");
+    const rating = row.querySelectorAll(".star.active").length;
+    mealRatings[key] = rating;
+  });
+  const mind = { read:getPressed(el("optReading")), book:getPressed(el("optBook")), meditation:getPressed(el("optMeditation")) };
+  return {
+    dateKey: currentKey,
+    weight: parseFloat(el("weightToday").value) || null,
+    sleepHours: parseFloat(el("sleepHours").value),
+    sleepQuality: document.querySelectorAll("#sleepQualityStars .star.active").length || 0,
+    mealRatings,
+    exerciseMins: parseInt(el("exerciseMins").value),
+    muscs: { A:getPressed(el("exoA")), B:getPressed(el("exoB")), C:getPressed(el("exoC")) },
+    mind,
+    waterTotal: (getArr(currentKey,"waterEvents").reduce((a,b)=>a+b,0)) || 0,
+    coffeeCount: (getArr(currentKey,"coffeeEvents").length) || 0,
+    alcoholCount: (getArr(currentKey,"alcoholEvents").length) || 0,
+    prevWorkout: el("prevWorkout").getAttribute("data-prev") || null
+  };
+}
+
+function writeUI(d){
+  el("weightToday").value = d.weight || "";
+  // sleep
+  el("sleepHours").value = d.sleepHours || "";
+  buildStars(el("sleepQualityStars"), (n)=>{ saveDay({ sleepQuality:n }); });
+  const sq = d.sleepQuality||0;
+  [...el("sleepQualityStars").querySelectorAll(".star")].forEach((n,i)=>{ if(i<sq) n.classList.add("active"); else n.classList.remove("active"); });
+  // meals
+  const mealMap = d.mealRatings || {};
+  document.querySelectorAll("#mealsList .mealRow").forEach(row=>{
+    const stars=row.querySelector(".stars");
+    buildStars(stars, ()=>saveDay({ mealRatings: readUI().mealRatings }));
+    row.querySelector(".mealName").onclick=()=>{ stars.querySelectorAll(".star").forEach(b=>b.classList.remove("active")); saveDay({ mealRatings: readUI().mealRatings }); };
+    const key=row.getAttribute("data-key"); const cur = mealMap[key] || 0;
+    const nodes=[...stars.querySelectorAll(".star")]; nodes.forEach((n,i)=>{ n.classList.toggle("active", i<cur); });
+  });
+  // exercise
+  el("exerciseMins").value = d.exerciseMins || "";
+  setPressed(el("exoA"), d.muscs && !!d.muscs.A);
+  setPressed(el("exoB"), d.muscs && !!d.muscs.B);
+  setPressed(el("exoC"), d.muscs && !!d.muscs.C);
+  // mind
+  setPressed(el("optReading"), d.mind && !!d.mind.read);
+  setPressed(el("optBook"), d.mind && !!d.mind.book);
+  setPressed(el("optMeditation"), d.mind && !!d.mind.meditation);
+  // beverages / water
+  updateBeverages();
+  updateWaterUI();
+  // prev workout
+  const prevText = d.prevWorkout ? ("Treino anterior: " + d.prevWorkout) : "";
+  el("prevWorkout").textContent = prevText;
+  el("prevWorkout").setAttribute("data-prev", d.prevWorkout || "");
+  // labels & points
+  updateLabels();
+  renderScore();
+  renderSectionPoints();
+}
+
+function updateLabels(){
+  const s=loadSettings();
+  const now = new Date(currentKey);
+  const w = ["dom","seg","ter","qua","qui","sex","sáb"][now.getUTCDay()];
+  const m = ["jan","fev","mar","abr","mai","jun","jul","ago","set","out","nov","dez"][now.getUTCMonth()];
+  const dd = ("0"+now.getUTCDate()).slice(-2);
+  el("dateTop").textContent = dd+"/"+m+" ("+w+")";
+  el("sleepGoalLabel").textContent = s.sleepGoal;
+  const h=parseFloat(el("sleepHours").value)||0;
+  el("sleepStatus").textContent = (h>=s.sleepGoal && h>0) ? "✓ ok" : (h? "abaixo" : "");
+  el("sleepStatus").style.color = (h>=s.sleepGoal && h>0) ? "#58d68d" : "";
+  el("btnCup").innerHTML = "+ <span id='cupLabel'>"+s.cup+"</span> ml";
+  el("waterProgress").max = s.waterGoal; el("waterGoal").textContent = s.waterGoal;
+  el("weightGoalLabel").textContent = formatKg(s.weightGoal);
+  const today = loadDay(currentKey); const yKey = new Date(Date.parse(currentKey)-86400000).toISOString().slice(0,10);
+  const yesterday = loadDay(yKey);
+  if(yesterday && yesterday.weight!=null){
+    el("rowYesterday").style.display='block';
+    el("weightPrev").textContent = formatKg(yesterday.weight);
+    if(today && today.weight!=null){
+      const diff = (today.weight - yesterday.weight);
+      const txt = " (" + (diff>0? "+":"") + (Math.round(diff*10)/10).toFixed(1) + " kg)";
+      el("weightDeltaTxt").textContent = txt;
+      el("weightDeltaTxt").style.color = diff<0 ? "#58d68d" : (diff>0? "#ff6b6b" : "#aaa");
+    } else { el("weightDeltaTxt").textContent=""; }
+  } else {
+    el("rowYesterday").style.display='none';
+  }
+  // weight to goal
+  if(today && today.weight!=null){
+    const left = Math.max(0, today.weight - s.weightGoal);
+    el("weightToGo").textContent = (Math.round(left*10)/10).toFixed(1) + " kg";
+  } else {
+    el("weightToGo").textContent = "—";
+  }
+}
+
+function renderSectionPoints(){
+  const d=readUI(); const p=computeParts(d).partsPts;
+  el("ptsSleep").textContent = p.sleep + " / 30";
+  el("ptsMeals").textContent = p.meals + " / 45";
+  el("ptsExercise").textContent = p.exercise + " / 15";
+  el("ptsHydration").textContent = p.hydration + " / 10";
+  el("ptsMind").textContent = p.mind + " / 5";
+}
+
+function renderScore(){
+  const total = computeScore(readUI());
+  el("scoreTop").innerHTML = total + '<span class="outOf">/100</span>';
+  calcStreak();
+}
+
+// ---------- Water & beverages ----------
+function getArr(key, name){
+  try{ return JSON.parse(localStorage.getItem("vida_plus_"+key+"_"+name) || "[]"); }catch(e){ return []; }
+}
+function setArr(key, name, arr){
+  localStorage.setItem("vida_plus_"+key+"_"+name, JSON.stringify(arr));
+}
+
+function updateWaterUI(){
+  const s=loadSettings();
+  const arr=getArr(currentKey,"waterEvents"); const total = arr.reduce((a,b)=>a+b,0);
+  el("waterProgress").value = total;
+  el("waterTotal").textContent = total;
+  const pct = s.waterGoal? Math.min(100, Math.round(100*total/s.waterGoal)) : 0;
+  el("waterPct").textContent = pct+"%";
+  saveDay({ waterTotal: total }, currentKey); // apenas atualiza no dia, sem mexer nos outros campos
+}
+function addCup(){ const s=loadSettings(); const arr=getArr(currentKey,"waterEvents"); arr.push(s.cup||250); setArr(currentKey,"waterEvents",arr); updateWaterUI(); }
+function undoCup(){ const arr=getArr(currentKey,"waterEvents"); arr.pop(); setArr(currentKey,"waterEvents",arr); updateWaterUI(); }
+
+function updateBeverages(){
+  const s=loadSettings();
+  const c = loadDay(currentKey).coffeeCount || 0;
+  const a = loadDay(currentKey).alcoholCount || 0;
+  el("coffeeIcons").innerHTML = c? "☕".repeat(Math.min(c,5)) + (c>5? "<span class='mini'>×"+c+"</span>": "") : "—";
+  el("alcoholIcons").innerHTML = a? "🍷".repeat(Math.min(a,5)) + (a>5? "<span class='mini'>×"+a+"</span>": "") : "—";
+  const coffeeColor = (c===0)? "ok" : (c<=s.coffeeLimit? "warn" : "bad");
+  const alcoholColor = (a===0)? "ok" : (a<=s.alcoholLimit? "warn" : "bad");
+  el("coffeeCountWrap").className = "bevNum small "+coffeeColor; el("coffeeCountWrap").textContent = c;
+  el("alcoholCountWrap").className = "bevNum small "+alcoholColor; el("alcoholCountWrap").textContent = a;
+}
+
+// ---------- History ----------
+function renderHistory(){
+  const s=loadSettings(); const list=el("historyList"); list.innerHTML="";
+  const start = new Date(s.startDate||todayKey());
+  const days=[];
+  for(let i=0;i<365;i++){
+    const dt = new Date(Date.now()-i*86400000);
+    if(dt < start) break;
+    const key = dt.toISOString().slice(0,10);
+    const d = loadDay(key);
+    days.push({key,d});
+  }
+  // newest first
+  const rows = days;
+  let sumNote=0, countNote=0, sumW=0, countW=0;
+  rows.forEach(({key,d})=>{
+    const note = computeScore(d||{});
+    if(note>0){ sumNote+=note; countNote++; }
+    if(d && d.weight!=null){ sumW+=d.weight; countW++; }
+  });
+  el("avgNote").textContent = countNote? Math.round(sumNote/countNote) : "—";
+  el("avgWeight").textContent = countW? (Math.round((sumW/countW)*10)/10).toFixed(1)+" kg" : "—";
+  el("avgIcons").textContent = ""; // intencionalmente vazio
+  rows.forEach(({key,d})=>{
+    const div=document.createElement("div"); div.className="histRow";
+    const note = computeScore(d||{});
+    const mindIcon = (d?.mind?.read||d?.mind?.book||d?.mind?.meditation) ? "🧠" : "";
+    const cups = d?.coffeeCount||0, wines=d?.alcoholCount||0;
+    const sset=loadSettings();
+    let cupsColor = (cups===0)? "ok" : (cups<=sset.coffeeLimit? "warn":"bad");
+    let wineColor = (wines===0)? "ok" : (wines<=sset.alcoholLimit? "warn":"bad");
+    const icons = `<span class="mini">${mindIcon}</span> <span class="mini ${cupsColor}">${cups? "☕".repeat(Math.min(cups,3)): ""}${cups>3? "×"+cups:""}</span> <span class="mini ${wineColor}">${wines? "🍷".repeat(Math.min(wines,3)):""}${wines>3? "×"+wines:""}</span>`;
+    div.innerHTML = `<div>${shortDate(key).split(' ')[0]}</div>
+      <div class="numRight">${note? note: "—"}</div>
+      <div class="histIcons">${icons}</div>
+      <div class="numRight">${d?.weight!=null? (Math.round(d.weight*10)/10).toFixed(1)+" kg" : "—"}</div>`;
+    list.appendChild(div);
+  });
+}
+
+// ---------- Event wiring ----------
+function attach(){
+  // weight
+  el("saveWeight").onclick = ()=>{ const w=parseFloat(el("weightToday").value); if(!isNaN(w)) saveDay({weight:w}); updateLabels(); renderHistory(); };
+  // sleep
+  el("sleepHours").onchange = ()=>saveDay({ sleepHours: parseFloat(el("sleepHours").value)||0 });
+  // exercise
+  ["exoA","exoB","exoC"].forEach(id=>{
+    el(id).onclick=()=>{ setPressed(el(id), !getPressed(el(id))); saveDay({ muscs: { A:getPressed(el("exoA")), B:getPressed(el("exoB")), C:getPressed(el("exoC")) } }); };
+  });
+  el("exerciseMins").onchange = ()=>saveDay({ exerciseMins: parseInt(el("exerciseMins").value)||0 });
+  // mind
+  ["optReading","optBook","optMeditation"].forEach(id=>{
+    el(id).onclick=()=>{ setPressed(el(id), !getPressed(el(id))); saveDay({ mind: { read:getPressed(el("optReading")), book:getPressed(el("optBook")), meditation:getPressed(el("optMeditation")) } }); };
+  });
+  // hydration
+  el("btnCup").onclick = addCup;
+  el("undoWater").onclick = undoCup;
+  // beverages
+  el("coffeeAdd").onclick = ()=>{ const d=loadDay(currentKey); const n=(d.coffeeCount||0)+1; saveDay({coffeeCount:n}); updateBeverages(); };
+  el("coffeeUndo").onclick = ()=>{ const d=loadDay(currentKey); const n=Math.max(0,(d.coffeeCount||0)-1); saveDay({coffeeCount:n}); updateBeverages(); };
+  el("alcoholAdd").onclick = ()=>{ const d=loadDay(currentKey); const n=(d.alcoholCount||0)+1; saveDay({alcoholCount:n}); updateBeverages(); };
+  el("alcoholUndo").onclick = ()=>{ const d=loadDay(currentKey); const n=Math.max(0,(d.alcoholCount||0)-1); saveDay({alcoholCount:n}); updateBeverages(); };
+  // actions
+  el("saveBtn").onclick = ()=>saveDay(readUI());
+  el("closeDayBtn").onclick = ()=>{ const r=readUI(); // salva treino do dia para mostrar como "anterior" amanhã
+    let tName=""; const s=loadSettings(); if(r.muscs.A) tName=s.nameA; else if(r.muscs.B) tName=s.nameB; else if(r.muscs.C) tName=s.nameC;
+    saveDay({ prevWorkout: tName }); alert("Dia fechado ✅"); };
+  // settings
+  el("btnReset").onclick = async ()=>{
+    if(confirm("Limpar cache e recarregar?")){
+      try{ const regs=await navigator.serviceWorker.getRegistrations(); for(const r of regs) await r.unregister(); }catch(e){}
+      localStorage.clear(); location.reload();
+    }
+  };
+  el("btnLogin").onclick = ()=>{ const s=loadSettings(); s.sbUrl=el("cfgSbUrl").value.trim(); s.sbKey=el("cfgSbKey").value.trim(); saveSettings(s); const email=el("cfgEmail").value.trim(); sbInitFromSettings(); sbLogin(email); };
+  el("btnLogout").onclick = ()=>sbLogout();
+  // settings inputs
+  [["cfgSleepGoal","sleepGoal"],["cfgWaterGoal","waterGoal"],["cfgWeightGoal","weightGoal"],["cfgCup","cup"],["cfgStartDate","startDate"],["cfgCoffeeLimit","coffeeLimit"],["cfgAlcoholLimit","alcoholLimit"],["cfgNameA","nameA"],["cfgNameB","nameB"],["cfgNameC","nameC"]].forEach(([id,key])=>{
+    const node=el(id);
+    node.onchange=()=>{ const s=loadSettings(); s[key]= (node.type==="number"||id==="cfgCup")? (parseFloat(node.value)||s[key]) : node.value; saveSettings(s); updateLabels(); renderScore(); renderHistory(); };
+  });
+}
+
+// ---------- Init ----------
+function loadDayIntoUI(key){
+  currentKey=key;
+  const d=loadDay(key);
+  writeUI(d);
+}
+function hydrateSettingsUI(){
+  const s=loadSettings();
+  el("cfgSleepGoal").value = s.sleepGoal;
+  el("cfgWaterGoal").value = s.waterGoal;
+  el("cfgWeightGoal").value = s.weightGoal;
+  el("cfgCup").value = s.cup;
+  el("cfgStartDate").value = s.startDate;
+  el("cfgCoffeeLimit").value = s.coffeeLimit;
+  el("cfgAlcoholLimit").value = s.alcoholLimit;
+  el("cfgNameA").value = s.nameA;
+  el("cfgNameB").value = s.nameB;
+  el("cfgNameC").value = s.nameC;
+  el("cfgSbUrl").value = s.sbUrl||"";
+  el("cfgSbKey").value = s.sbKey||"";
+}
+if('serviceWorker' in navigator){ navigator.serviceWorker.register('./sw.js').catch(()=>{}); }
+attach();
+hydrateSettingsUI();
+loadDayIntoUI(todayKey());
+sbInitFromSettings(); sbCheck();
+document.addEventListener("visibilitychange", ()=>{ if(document.visibilityState==="visible"){ renderHistory(); renderScore(); }});
+</script>
 </body>
 </html>
