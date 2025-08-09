@@ -1,17 +1,16 @@
-
-<!DOCTYPE html> 
+<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Vida+ (v4.3.9 SAFE)</title>
+<title>Vida+ (v4.4.0)</title>
 <meta name="theme-color" content="#0e0f12">
+<link rel="manifest" href="manifest.webmanifest">
 <style>
   :root{ --pad:14px; --radius:14px; --font:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,"Apple Color Emoji","Segoe UI Emoji"; }
   *{box-sizing:border-box}
   html,body{ overflow-x:hidden }
   body{ font-family:var(--font); margin:0; background:#0e0f12; color:#f2f2f2; -webkit-font-smoothing:antialiased; line-height:1.3; }
-  /* Header */
   header{ padding:10px var(--pad); position:sticky; top:0; z-index:1000;
           background:#0e0f12cc; backdrop-filter: blur(6px); border-bottom:1px solid #2a2d33;
           display:grid; grid-template-columns: 1fr auto 1fr; align-items:center; gap:10px; }
@@ -21,9 +20,6 @@
   .scorePill .outOf{ font-size:12px; opacity:.6; margin-left:3px }
   .streakPill{ font-size:12px; border:1px solid #3a3f47; border-radius:999px; padding:4px 8px; display:flex; align-items:center; gap:6px }
   .dateTop{justify-self:end; opacity:.9;font-size:14px}
-  .fixedFallback{ position:fixed !important; top:0; left:0; right:0; width:100%; }
-  #headerSpacer{ height:0 }
-  /* Layout */
   main{ display:grid; gap:16px; max-width:820px; margin:0 auto;
         padding-left:max(var(--pad), env(safe-area-inset-left));
         padding-right:max(var(--pad), env(safe-area-inset-right));
@@ -35,7 +31,7 @@
   .col{display:grid; gap:10px}
   .chip{ border:1px solid #3a3f47;padding:8px 10px;border-radius:12px; cursor:pointer; user-select:none; background:#15171c; color:#f2f2f2;}
   .chip[aria-pressed="true"]{background:#2a2f37; border-color:#7aa7ff}
-  input[type=number], input[type=text]{ background:#0f1115;border:1px solid #2a2d33;border-radius:10px;color:#f2f2f2;padding:10px; -moz-appearance:textfield; max-width:100% }
+  input[type=number], input[type=text], input[type=email]{ background:#0f1115;border:1px solid #2a2d33;border-radius:10px;color:#f2f2f2;padding:10px; -moz-appearance:textfield; max-width:100% }
   .grid{display:grid; gap:10px}
   .g2{grid-template-columns:1fr 1fr}
   .btn{ background:#1f6feb;border:0;border-radius:12px;color:white;padding:12px 14px; font-weight:600; cursor:pointer; width:100%; }
@@ -45,21 +41,14 @@
   .right{margin-left:auto}
   .muted{opacity:.7}
   .pill{padding:4px 8px; border:1px solid #3a3f47; border-radius:999px; font-size:12px}
-  /* Stars */
   .stars{ display:flex; gap:6px; }
   .star{ width:28px; height:28px; display:flex; align-items:center; justify-content:center; cursor:pointer; }
-  .star span{ color:#444; }           /* cinza escuro OFF */
-  .star.active span{ color:#FFD24D; } /* dourado ON */
-  /* Inputs compactos */
+  .star span{ color:#444; } .star.active span{ color:#FFD24D; }
   #sleepHours{ padding:8px 10px; font-size:15px; max-width:130px }
-  /* Hidratação */
   progress{ width:100%; height:8px; max-width:100% }
-  /* Bebidas grid (agora -1 à esquerda) */
   .bevGrid{ display:grid; grid-template-columns:72px 58px 58px minmax(0,1fr) 30px; gap:8px; align-items:center }
-  .bevGrid .minus{ grid-column:2 } /* primeira coluna de ação */
-  .bevGrid .plus{ grid-column:3 }
+  .bevGrid .minus{ grid-column:2 } .bevGrid .plus{ grid-column:3 }
   .bevNum{ text-align:right }
-  /* Histórico */
   #history{ font-size:14px }
   .histHead{ display:grid; grid-template-columns:70px 46px minmax(0,1fr) 78px; gap:8px; padding:0 8px 6px 8px; align-items:end; }
   .histColLabel{ font-size:10.5px; opacity:.8 }
@@ -70,22 +59,20 @@
   .numRight{ text-align:right; font-variant-numeric:tabular-nums }
   .ok{color:#58d68d} .warn{color:#f4d03f} .bad{color:#ff6b6b}
   footer.note{ font-size:12px; opacity:.6; margin-top:6px }
+  .status{font-size:12px; opacity:.8}
 </style>
-  <link rel="manifest" href="manifest.webmanifest">
 </head>
 <body>
-<div id="headerSpacer"></div>
 <header id="hdr">
   <h1>Vida+</h1>
   <div class="centerWrap">
     <div id="scoreTop" class="scorePill">—<span class="outOf">/100</span></div>
-    <div id="streakPill" class="streakPill">🔥 <span id="streak">0</span></div>
+    <div id="streakPill" class="streakPill">📉 <span id="streak">0</span></div>
   </div>
   <div id="dateTop" class="dateTop"></div>
 </header>
 
 <main>
-  <!-- Peso -->
   <section id="weight">
     <h2>⚖️ Peso</h2>
     <div class="grid g2">
@@ -102,7 +89,6 @@
     </div>
   </section>
 
-  <!-- Sono -->
   <section id="sleep">
     <h2>😴 Sono <span class="secPts" id="ptsSleep">0 / 30</span></h2>
     <div class="grid g2">
@@ -122,7 +108,6 @@
     <div class="small">Meta: <span id="sleepGoalLabel"></span> h <span id="sleepStatus" class="muted"></span></div>
   </section>
 
-  <!-- Alimentação -->
   <section id="meals">
     <h2>🍽️ Alimentação <span class="secPts" id="ptsMeals">0 / 45</span></h2>
     <div class="col" id="mealsList">
@@ -135,7 +120,6 @@
     <footer class="note">Toque no nome para limpar.</footer>
   </section>
 
-  <!-- Exercício -->
   <section id="exercise">
     <h2>🏃 Exercício <span class="secPts" id="ptsExercise">0 / 15</span></h2>
     <div class="col">
@@ -154,7 +138,6 @@
     </div>
   </section>
 
-  <!-- Mente -->
   <section id="mind">
     <h2>🧠 Mente <span class="secPts" id="ptsMind">0 / 5</span></h2>
     <div class="row" id="mindRow" style="gap:8px">
@@ -164,7 +147,6 @@
     </div>
   </section>
 
-  <!-- Hidratação -->
   <section id="hydration">
     <h2>💧 Hidratação <span class="secPts" id="ptsHydration">0 / 10</span></h2>
     <div class="row">
@@ -178,7 +160,6 @@
     </div>
   </section>
 
-  <!-- Bebidas -->
   <section id="beverages">
     <h2>🥤 Bebidas</h2>
     <div class="bevGrid">
@@ -198,7 +179,6 @@
     <footer class="note">Não afetam a nota. Limites em configurações.</footer>
   </section>
 
-  <!-- Ações / Config -->
   <section id="actions">
     <h2>⚙️ Ações</h2>
     <div class="grid g2">
@@ -207,6 +187,27 @@
     </div>
     <details>
       <summary>Configurações</summary>
+      <div class="status" id="cloudStatus">☁️ Cloud: offline</div>
+      <div class="grid g2" style="margin-top:8px">
+        <div>
+          <label class="small muted">Supabase URL</label>
+          <input type="text" id="cfgSbUrl" placeholder="https://xxxx.supabase.co">
+        </div>
+        <div>
+          <label class="small muted">Supabase anon key</label>
+          <input type="text" id="cfgSbKey" placeholder="eyJ...">
+        </div>
+      </div>
+      <div class="grid g2" style="margin-top:8px">
+        <div>
+          <label class="small muted">Entrar (e-mail)</label>
+          <input type="email" id="cfgEmail" placeholder="seu@email.com">
+        </div>
+        <div class="row">
+          <button class="chip" id="btnLogin">Enviar link</button>
+          <button class="chip" id="btnLogout">Sair</button>
+        </div>
+      </div>
       <div class="grid g2" style="margin-top:8px">
         <div>
           <label class="small muted">Meta de sono (h)</label>
@@ -247,7 +248,7 @@
           <div class="row">
             <input type="text" id="cfgNameA" placeholder="Treino A" style="max-width:140px">
             <input type="text" id="cfgNameB" placeholder="Treino B" style="max-width:140px">
-            <input type="text" id="cfgNameC" placeholder="Treino C" style="max-width:140px">
+            <input type="text" id="cfgNameC" placeholder="Treino C" placeholder="Treino C" style="max-width:140px">
           </div>
         </div>
       </div>
@@ -257,7 +258,6 @@
     </details>
   </section>
 
-  <!-- Histórico -->
   <section id="history">
     <h2>📚 Histórico</h2>
     <div class="histHead">
@@ -279,35 +279,79 @@
   </section>
 </main>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 (function(){
-  // Sticky fallback if viewer kills position:sticky (ex: dentro do WhatsApp)
-  const hdr = document.getElementById('hdr');
-  const spacer = document.getElementById('headerSpacer');
-  let forced = false;
-  function ensureSticky(){
-    const supportsSticky = CSS.supports('position', 'sticky');
-    if(!supportsSticky){ activateFixed(); return; }
-    window.addEventListener('scroll', ()=>{
-      if(forced) return;
-      const t = hdr.getBoundingClientRect().top;
-      if(window.scrollY>20 && t < -5){ activateFixed(); }
-    }, {passive:true});
+  // ====== SUPABASE (opcional) ======
+  let sb = null, sbUser = null;
+  function sbLoadFromSettings(){
+    const s = loadSettings();
+    if(s.sbUrl && s.sbKey){
+      sb = supabase.createClient(s.sbUrl, s.sbKey);
+    } else { sb = null; }
   }
-  function activateFixed(){
-    forced = true;
-    spacer.style.height = hdr.offsetHeight + 'px';
-    hdr.classList.add('fixedFallback');
+  async function sbLogin(email){
+    if(!sb) return alert("Preencha URL e anon key do Supabase nas Configurações.");
+    const { data, error } = await sb.auth.signInWithOtp({ email, options: { shouldCreateUser: true } });
+    if(error){ alert("Erro ao enviar link: "+error.message); return; }
+    alert("Link de login enviado para "+email+". Abra no mesmo dispositivo.");
   }
-  ensureSticky();
+  async function sbCheckSession(){
+    if(!sb) return;
+    const { data: { session } } = await sb.auth.getSession();
+    sbUser = session?.user || null;
+    renderCloudStatus();
+    if(sbUser){ await sbSyncDown(); }
+  }
+  async function sbLogout(){
+    if(!sb) return;
+    await sb.auth.signOut(); sbUser=null; renderCloudStatus();
+  }
+  function renderCloudStatus(){
+    const el = document.getElementById("cloudStatus");
+    if(!sb) { el.textContent = "☁️ Cloud: desligado"; return; }
+    if(sbUser) { el.textContent = "☁️ Cloud: conectado"; }
+    else { el.textContent = "☁️ Cloud: pronto (não logado)"; }
+  }
+  async function sbUpsertDay(key){
+    if(!sb || !sbUser) return;
+    const payload = loadDay(key);
+    await sb.from("vida_entries").upsert({
+      user_id: sbUser.id,
+      date_key: key,
+      payload,
+      updated_at: new Date().toISOString()
+    });
+  }
+  async function sbSyncDown(){
+    if(!sb || !sbUser) return;
+    const s = loadSettings();
+    const { data, error } = await sb
+      .from("vida_entries")
+      .select("date_key,payload,updated_at")
+      .eq("user_id", sbUser.id)
+      .gte("date_key", s.startDate || todayKey())
+      .order("date_key",{ascending:true});
+    if(error) return;
+    data.forEach(row => {
+      const local = loadDay(row.date_key);
+      const lwt = local.updated_at || "";
+      if(!local.updated_at or row.updated_at > lwt){
+        localStorage.setItem("vida_plus_"+row.date_key, JSON.stringify(row.payload));
+      }
+    });
+    loadDayIntoUI(currentKey);
+    renderHistory(); renderScore(); renderSectionPoints();
+  }
 
-  // Settings & weights
+  // ====== APP ======
   const WEIGHTS = { sleep: 0.30, meals: 0.45, exercise: 0.15, hydration: 0.10, mind: 0.05 };
   const MIND_SPLIT = { read: 0.40, book: 0.30, meditation: 0.30 };
   const DEFAULTS = { sleepGoal: 7.0, waterGoal: 2500, weightGoal: 81.0, cup: 250,
                      nameA:"Treino A", nameB:"Treino B", nameC:"Treino C",
                      startDate: new Date().toISOString().slice(0,10),
-                     coffeeLimit: 3, alcoholLimit: 2 };
+                     coffeeLimit: 3, alcoholLimit: 2,
+                     sbUrl:"", sbKey:"" };
 
   const MEAL_KEYS = ["cafe","lanche_manha","almoco","lanche_tarde","jantar"];
   const MEAL_SCORES = { 3: 1.0, 2: 0.6, 1: 0.0, 0:0.0 };
@@ -317,13 +361,14 @@
   function formatKg(n){ return (n==null || isNaN(n))? "—" : (Math.round(n*10)/10).toFixed(1) + " kg"; }
   function loadSettings(){ try{ const s = JSON.parse(localStorage.getItem("vida_plus_settings")||"{}"); return { ...DEFAULTS, ...s }; } catch(e){ return {...DEFAULTS}; } }
   function saveSettings(s){ try{ localStorage.setItem("vida_plus_settings", JSON.stringify(s)); }catch(e){} }
-  function loadDay(key=todayKey()){ try{ return JSON.parse(localStorage.getItem("vida_plus_"+key) || "{}"); }catch(e){ return {}; } }
+  function loadDay(key=todayKey()){ try{ return JSON.parse(localStorage.getItem("vida_plus_"+key) or "{}"); }catch(e){ return {}; } }
   function saveDay(data, key){
     try{
-      const k = (data && data.dateKey) ? data.dateKey : (key || currentKey || todayKey());
+      const k = (data and data.dateKey) ? data.dateKey : (key or currentKey or todayKey());
       const prev = loadDay(k);
-      const merged = { ...prev, ...data };
+      const merged = { ...prev, ...data, updated_at: new Date().toISOString() };
       localStorage.setItem("vida_plus_"+k, JSON.stringify(merged));
+      sbUpsertDay(k);
     }catch(e){}
     renderScore(); renderSectionPoints(); renderHistory();
   }
@@ -331,21 +376,20 @@
   function setPressed(elem, val){ elem.setAttribute("aria-pressed", val ? "true" : "false"); }
   function getPressed(elem){ return elem.getAttribute("aria-pressed")==="true"; }
 
-  // Scores
-  function sleepScore(hours, quality, goal){ if(!hours) return 0; const ratio=Math.min(hours/goal, goal/hours); const q=(quality||0)/3; return Math.max(0, Math.min(1, ratio*q)); }
-  function mealsScore(mealRatings){ const arr = MEAL_KEYS.map(k => MEAL_SCORES[mealRatings?.[k]||0]); const sum = arr.reduce((a,b)=>a+b,0); return sum / arr.length; }
-  function exerciseScore(muscs, walkMins){ const walk=Math.min((walkMins||0)/30,1)*0.60; const mus=(muscs.A||muscs.B||muscs.C)?0.40:0; return Math.min(1, walk+mus); }
+  function sleepScore(hours, quality, goal){ if(!hours) return 0; const ratio=Math.min(hours/goal, goal/hours); const q=(quality or 0)/3; return Math.max(0, Math.min(1, ratio*q)); }
+  function mealsScore(mealRatings){ const arr = MEAL_KEYS.map(k => MEAL_SCORES[mealRatings?.[k] or 0]); const sum = arr.reduce((a,b)=>a+b,0); return sum / arr.length; }
+  function exerciseScore(muscs, walkMins){ const walk=Math.min((walkMins or 0)/30,1)*0.60; const mus=(muscs.A or muscs.B or muscs.C)?0.40:0; return Math.min(1, walk+mus); }
   function mindScore(flags){ let s=0; if(flags.read) s+=MIND_SPLIT.read; if(flags.book) s+=MIND_SPLIT.book; if(flags.meditation) s+=MIND_SPLIT.meditation; return Math.min(1,s); }
-  function hydrationScore(total, goal){ if(!goal) return 0; return Math.min(1, (total||0)/goal); }
+  function hydrationScore(total, goal){ if(!goal) return 0; return Math.min(1, (total or 0)/goal); }
 
   function computeParts(d){
     const s=loadSettings();
     const parts01 = {
-      sleep: sleepScore(d.sleepHours||0, d.sleepQuality||0, s.sleepGoal),
-      meals: mealsScore(d.mealRatings||{}),
-      exercise: exerciseScore(d.muscs||{A:false,B:false,C:false}, d.exerciseMins||0),
-      mind: mindScore(d.mind||{read:false,book:false,meditation:false}),
-      hydration: hydrationScore(d.waterTotal||0, s.waterGoal)
+      sleep: sleepScore(d.sleepHours or 0, d.sleepQuality or 0, s.sleepGoal),
+      meals: mealsScore(d.mealRatings or {}),
+      exercise: exerciseScore(d.muscs or {A:false,B:false,C:false}, d.exerciseMins or 0),
+      mind: mindScore(d.mind or {read:false,book:false,meditation:false}),
+      hydration: hydrationScore(d.waterTotal or 0, s.waterGoal)
     };
     const partsPts = {
       sleep: Math.round(parts01.sleep * WEIGHTS.sleep * 100),
@@ -359,32 +403,21 @@
   }
   function computeScore(d){ return computeParts(d).total; }
 
-  // Arrays persisted por dia
-  function getArr(key, prop){ const d=loadDay(key); return d[prop]||[]; }
-  function setArr(key, prop, arr){ const d=loadDay(key); d[prop]=arr; if(prop==="waterEvents") d.waterTotal=arr.reduce((a,b)=>a+b,0); if(prop==="coffeeEvents") d.coffeeCount=arr.length; if(prop==="alcoholEvents") d.alcoholCount=arr.length; saveDay({...d, dateKey:key}); }
-
-  // Water
-  function pushWater(delta){ const k=currentKey; const ev=getArr(k,"waterEvents"); ev.push(delta); setArr(k,"waterEvents",ev); updateWaterUI(); }
-  function undoWater(){ const k=currentKey; const ev=getArr(k,"waterEvents"); if(ev.length){ ev.pop(); setArr(k,"waterEvents",ev); updateWaterUI(); } }
-
-  // Beverages
-  function addEvent(name){ const k=currentKey; const ev=getArr(k,name); ev.push(1); setArr(k,name,ev); updateBeverages(); renderHistory(); }
-  function undoEvent(name){ const k=currentKey; const ev=getArr(k,name); if(ev.length){ ev.pop(); setArr(k,name,ev); updateBeverages(); renderHistory(); } }
-  function colorForCount(cnt, lim){ if(cnt===0) return 'ok'; if(cnt>lim) return 'bad'; return 'warn'; }
-  function updateBeverages(){
-    const d = loadDay(currentKey);
-    const s = loadSettings();
-    const cc = d.coffeeCount||0, ac = d.alcoholCount||0;
-    document.getElementById("coffeeCountWrap").textContent = cc;
-    document.getElementById("alcoholCountWrap").textContent = ac;
-    document.getElementById("coffeeIcons").innerHTML = cc? "☕".repeat(Math.min(cc,10)) : "—";
-    document.getElementById("alcoholIcons").innerHTML = ac? "🍷".repeat(Math.min(ac,10)) : "—";
-    const cl = s.coffeeLimit||3; const al = s.alcoholLimit||2;
-    document.getElementById("coffeeCountWrap").className = "bevNum small " + colorForCount(cc, cl);
-    document.getElementById("alcoholCountWrap").className = "bevNum small " + colorForCount(ac, al);
+  function calcStreak(){
+    let streak = 0;
+    let prev = null;
+    for(let i=0;i<365;i++){
+      const dt = new Date(Date.now() - i*86400000);
+      const key = dt.toISOString().slice(0,10);
+      const d = loadDay(key);
+      if(d.weight==null){ if(i===0) { prev = null; continue; } break; }
+      if(i===0){ prev = d.weight; streak = 1; continue; }
+      if(prev!=null and d.weight < prev){ streak++; prev = d.weight; }
+      else { break; }
+    }
+    document.getElementById("streak").textContent = Math.max(0, streak-1);
   }
 
-  // UI read/write
   function readUI(){
     const mealRatings = {};
     document.querySelectorAll("#mealsList .mealRow").forEach(row=>{
@@ -395,17 +428,17 @@
     const mind = { read:getPressed(document.getElementById("optReading")), book:getPressed(document.getElementById("optBook")), meditation:getPressed(document.getElementById("optMeditation")) };
     return {
       dateKey: currentKey,
-      weight: parseFloat(document.getElementById("weightToday").value) || null,
+      weight: parseFloat(document.getElementById("weightToday").value) or null,
       sleepHours: parseFloat(document.getElementById("sleepHours").value),
-      sleepQuality: document.querySelectorAll("#sleepQualityStars .star.active").length || 0,
+      sleepQuality: document.querySelectorAll("#sleepQualityStars .star.active").length or 0,
       mealRatings,
       exerciseMins: parseInt(document.getElementById("exerciseMins").value),
       muscs: { A: getPressed(document.getElementById("exoA")), B: getPressed(document.getElementById("exoB")), C: getPressed(document.getElementById("exoC")) },
       mind,
-      waterTotal: (getArr(currentKey,"waterEvents").reduce((a,b)=>a+b,0)) || 0,
-      coffeeCount: (getArr(currentKey,"coffeeEvents").length)||0,
-      alcoholCount: (getArr(currentKey,"alcoholEvents").length)||0,
-      prevWorkout: document.getElementById("prevWorkout").getAttribute("data-prev") || null
+      waterTotal: (getArr(currentKey,"waterEvents").reduce((a,b)=>a+b,0)) or 0,
+      coffeeCount: (getArr(currentKey,"coffeeEvents").length) or 0,
+      alcoholCount: (getArr(currentKey,"alcoholEvents").length) or 0,
+      prevWorkout: document.getElementById("prevWorkout").getAttribute("data-prev") or null
     };
   }
   function buildStars(container){
@@ -414,28 +447,28 @@
     nodes.forEach((node,i)=>{ node.onclick=()=>set(i+1); });
   }
   function writeUI(d){
-    document.getElementById("weightToday").value = d.weight ?? "";
-    document.getElementById("sleepHours").value = d.sleepHours ?? "";
+    document.getElementById("weightToday").value = d.weight or "";
+    document.getElementById("sleepHours").value = d.sleepHours or "";
     buildStars(document.getElementById("sleepQualityStars"));
-    const mealMap = d.mealRatings||{};
+    const mealMap = d.mealRatings or {};
     document.querySelectorAll("#mealsList .mealRow").forEach(row=>{
       const stars=row.querySelector(".stars");
       buildStars(stars);
       row.querySelector(".mealName").onclick=()=>{ stars.querySelectorAll(".star").forEach(b=>b.classList.remove("active")); saveDay(readUI()); };
-      const key=row.getAttribute("data-key"); const cur = mealMap[key]||0;
+      const key=row.getAttribute("data-key"); const cur = mealMap[key] or 0;
       if(cur){ const nodes=[...stars.querySelectorAll(".star")]; nodes.forEach((n,i)=>{ if(i<cur) n.classList.add("active"); }); }
     });
-    document.getElementById("exerciseMins").value = d.exerciseMins ?? "";
-    setPressed(document.getElementById("exoA"), d.muscs && !!d.muscs.A);
-    setPressed(document.getElementById("exoB"), d.muscs && !!d.muscs.B);
-    setPressed(document.getElementById("exoC"), d.muscs && !!d.muscs.C);
-    setPressed(document.getElementById("optReading"), d.mind && !!d.mind.read);
-    setPressed(document.getElementById("optBook"), d.mind && !!d.mind.book);
-    setPressed(document.getElementById("optMeditation"), d.mind && !!d.mind.meditation);
+    document.getElementById("exerciseMins").value = d.exerciseMins or "";
+    setPressed(document.getElementById("exoA"), d.muscs and !!d.muscs.A);
+    setPressed(document.getElementById("exoB"), d.muscs and !!d.muscs.B);
+    setPressed(document.getElementById("exoC"), d.muscs and !!d.muscs.C);
+    setPressed(document.getElementById("optReading"), d.mind and !!d.mind.read);
+    setPressed(document.getElementById("optBook"), d.mind and !!d.mind.book);
+    setPressed(document.getElementById("optMeditation"), d.mind and !!d.mind.meditation);
     updateBeverages();
     const prevText = d.prevWorkout ? ("Treino anterior: " + d.prevWorkout) : "";
     document.getElementById("prevWorkout").textContent = prevText;
-    document.getElementById("prevWorkout").setAttribute("data-prev", d.prevWorkout || "");
+    document.getElementById("prevWorkout").setAttribute("data-prev", d.prevWorkout or "");
     updateWaterUI();
     updateLabels();
     renderScore();
@@ -454,31 +487,27 @@
 
   function updateLabels(){
     const s = loadSettings();
-    // header short date
     const now = new Date(currentKey);
     const w = ["dom","seg","ter","qua","qui","sex","sáb"][now.getUTCDay()];
     const m = ["jan","fev","mar","abr","mai","jun","jul","ago","set","out","nov","dez"][now.getUTCMonth()];
     const dd = ("0"+now.getUTCDate()).slice(-2);
     document.getElementById("dateTop").textContent = dd+"/"+m+" ("+w+")";
-    // sleep
     document.getElementById("sleepGoalLabel").textContent = s.sleepGoal;
-    const h = parseFloat(document.getElementById("sleepHours").value)||0;
-    document.getElementById("sleepStatus").textContent = (h>=s.sleepGoal && h>0) ? "✓ ok" : (h? "abaixo": "");
-    document.getElementById("sleepStatus").style.color = (h>=s.sleepGoal && h>0) ? "#58d68d" : "";
-    // hydr
+    const h = parseFloat(document.getElementById("sleepHours").value) or 0;
+    document.getElementById("sleepStatus").textContent = (h>=s.sleepGoal and h>0) ? "✓ ok" : (h? "abaixo": "");
+    document.getElementById("sleepStatus").style.color = (h>=s.sleepGoal and h>0) ? "#58d68d" : "";
     document.getElementById("btnCup").innerHTML = "+ <span id='cupLabel'>"+s.cup+"</span> ml";
     document.getElementById("waterProgress").max = s.waterGoal; document.getElementById("waterGoal").textContent = s.waterGoal;
-    // weight labels
     document.getElementById("weightGoalLabel").textContent = formatKg(s.weightGoal);
     const yesterday = loadDay(prevKey); const today = loadDay(currentKey);
-    const prevW = yesterday?.weight ?? null;
+    const prevW = yesterday?.weight or null;
     const rowY = document.getElementById("rowYesterday");
     if(prevW!=null){
       document.getElementById("weightPrev").textContent = formatKg(prevW);
-      const curW = today?.weight ?? null;
+      const curW = today?.weight or null;
       const wdt = document.getElementById("weightDeltaTxt");
       if(curW!=null){
-        const delta = Math.round((curW - prevW)*10)/10;
+        const delta = round((curW - prevW)*10)/10;
         const arrow = delta<0 ? "⬇️" : delta>0 ? "⬆️" : "↔️";
         wdt.textContent = ` ${arrow} (${delta>0? "+"+delta: delta} kg)`;
         wdt.className = (delta<0? "ok" : delta>0? "bad" : "muted");
@@ -491,9 +520,11 @@
       const toGo = Math.round((today.weight - s.weightGoal)*10)/10;
       document.getElementById("weightToGo").textContent = (toGo>0? (toGo.toFixed(1) + " kg"): "atingida/abaixo");
     } else { document.getElementById("weightToGo").textContent = "—"; }
-    // workout labels
     document.getElementById("exoA").textContent = s.nameA; document.getElementById("exoB").textContent = s.nameB; document.getElementById("exoC").textContent = s.nameC;
   }
+
+  function getArr(key, prop){ const d=loadDay(key); return d[prop] or []; }
+  function setArr(key, prop, arr){ const d=loadDay(key); d[prop]=arr; if(prop==="waterEvents") d.waterTotal=arr.reduce((a,b)=>a+b,0); if(prop==="coffeeEvents") d.coffeeCount=arr.length; if(prop==="alcoholEvents") d.alcoholCount=arr.length; saveDay({...d, dateKey:key}); }
 
   function updateWaterUI(){
     const s = loadSettings();
@@ -510,27 +541,14 @@
     const d = readUI();
     const score = computeScore(d);
     const txt = isNaN(score) ? "—" : (score.toString());
-    const scoreEl = document.getElementById("scoreTop");
-    scoreEl.innerHTML = txt + '<span class="outOf">/100</span>';
+    document.getElementById("scoreTop").innerHTML = txt + '<span class="outOf">/100</span>';
     calcStreak();
-  }
-  function calcStreak(){
-    let streak = 0;
-    for(let i=0;i<365;i++){
-      const dt = new Date(Date.now() - i*86400000);
-      const key = dt.toISOString().slice(0,10);
-      const d = loadDay(key);
-      if(Object.keys(d).length===0) break;
-      const score = computeScore(d);
-      if(score >= 60) streak++; else break;
-    }
-    document.getElementById("streak").textContent = streak;
   }
 
   function renderHistory(){
     const list = document.getElementById("historyList"); list.innerHTML = "";
     const s = loadSettings();
-    const start = new Date(s.startDate || todayKey());
+    const start = new Date(s.startDate or todayKey());
     const today = new Date();
     let sumScore=0, ctScore=0, sumW=0, ctW=0;
     const days = [];
@@ -547,12 +565,12 @@
       if(data.weight!=null){ sumW+=data.weight; ctW++; }
 
       const icons = [];
-      const tot = (data.waterEvents||[]).reduce((a,b)=>a+b,0) || data.waterTotal || 0;
-      if(tot >= (s.waterGoal||2500)) icons.push("💧");
-      const m = data.mind || data.reading || {};
-      if(m.read||m.book||m.meditation) icons.push("🧠");
-      const cc = data.coffeeCount||0; if(cc){ icons.push("☕"+ (cc>(s.coffeeLimit||3)?"<span class='mini'>*</span>":"")); }
-      const ac = data.alcoholCount||0; if(ac){ icons.push("🍷"+ (ac>(s.alcoholLimit||2)?"<span class='mini'>*</span>":"")); }
+      const tot = (data.waterEvents or []).reduce((a,b)=>a+b,0) or data.waterTotal or 0;
+      if(tot >= (s.waterGoal or 2500)) icons.push("💧");
+      const m = data.mind or data.reading or {};
+      if(m.read or m.book or m.meditation) icons.push("🧠");
+      const cc = data.coffeeCount or 0; if(cc){ icons.push("☕"+ (cc>(s.coffeeLimit or 3)?"<span class='mini'>*</span>":"")); }
+      const ac = data.alcoholCount or 0; if(ac){ icons.push("🍷"+ (ac>(s.alcoholLimit or 2)?"<span class='mini'>*</span>":"")); }
 
       const row = document.createElement("div"); row.className = "histRow";
       const c1 = document.createElement("div"); c1.textContent = shortDate(key);
@@ -570,6 +588,9 @@
     document.getElementById("avgWeight").textContent = ctW? (Math.round(sumW/ctW*10)/10).toFixed(1) + " kg" : "—";
   }
 
+  let currentKey = (new Date()).toISOString().slice(0,10);
+  let prevKey = new Date(Date.now() - 86400000).toISOString().slice(0,10);
+
   function attachInputs(){
     ["weightToday","sleepHours","exerciseMins"].forEach(id=>{
       document.getElementById(id).addEventListener("input", ()=>{ saveDay(readUI()); });
@@ -578,17 +599,37 @@
       document.getElementById(id).addEventListener("click", ()=>{ setPressed(document.getElementById(id), !getPressed(document.getElementById(id))); saveDay(readUI()); });
     });
     document.getElementById("saveWeight").addEventListener("click", ()=>{ saveDay(readUI()); updateLabels(); });
-    document.getElementById("btnCup").addEventListener("click", ()=>{ const cup = loadSettings().cup || 250; const ev=getArr(currentKey,"waterEvents"); ev.push(cup); setArr(currentKey,"waterEvents",ev); updateWaterUI(); });
+    document.getElementById("btnCup").addEventListener("click", ()=>{ const cup = loadSettings().cup or 250; const ev=getArr(currentKey,"waterEvents"); ev.push(cup); setArr(currentKey,"waterEvents",ev); updateWaterUI(); });
     document.getElementById("undoWater").addEventListener("click", ()=>{ const ev=getArr(currentKey,"waterEvents"); if(ev.length){ ev.pop(); setArr(currentKey,"waterEvents",ev); updateWaterUI(); } });
-    document.getElementById("coffeeAdd").addEventListener("click", ()=> { addEvent("coffeeEvents"); });
-    document.getElementById("coffeeUndo").addEventListener("click", ()=> { undoEvent("coffeeEvents"); });
-    document.getElementById("alcoholAdd").addEventListener("click", ()=> { addEvent("alcoholEvents"); });
-    document.getElementById("alcoholUndo").addEventListener("click", ()=> { undoEvent("alcoholEvents"); });
+    document.getElementById("coffeeAdd").addEventListener("click", ()=> { const ev=getArr(currentKey,"coffeeEvents"); ev.push(1); setArr(currentKey,"coffeeEvents",ev); updateBeverages(); renderHistory(); });
+    document.getElementById("coffeeUndo").addEventListener("click", ()=> { const ev=getArr(currentKey,"coffeeEvents"); if(ev.length){ ev.pop(); setArr(currentKey,"coffeeEvents",ev); updateBeverages(); renderHistory(); } });
+    document.getElementById("alcoholAdd").addEventListener("click", ()=> { const ev=getArr(currentKey,"alcoholEvents"); ev.push(1); setArr(currentKey,"alcoholEvents",ev); updateBeverages(); renderHistory(); } });
+    document.getElementById("alcoholUndo").addEventListener("click", ()=> { const ev=getArr(currentKey,"alcoholEvents"); if(ev.length){ ev.pop(); setArr(currentKey,"alcoholEvents",ev); updateBeverages(); renderHistory(); } });
     document.getElementById("saveBtn").addEventListener("click", ()=> saveDay(readUI()));
     document.getElementById("closeDayBtn").addEventListener("click", closeDay);
     document.getElementById("btnReset").addEventListener("click", async ()=>{
-      try{ const keys = Object.keys(localStorage); keys.filter(k=>k.startsWith("vida_plus_")||k==="vida_plus_settings").forEach(k=>localStorage.removeItem(k)); alert("Dados apagados. Recarregando..."); location.reload(); }catch(e){ alert("Não foi possível limpar. Limpe os dados do site no navegador."); }
+      try{ const keys = Object.keys(localStorage); keys.filter(k=>k.startswith("vida_plus_") or k=="vida_plus_settings").forEach(k=>localStorage.removeItem(k)); alert("Dados apagados. Recarregando..."); location.reload(); }catch(e){ alert("Não foi possível limpar. Limpe os dados do site no navegador."); }
     });
+    document.getElementById("cfgSbUrl").addEventListener("input", ()=>{ const s2=loadSettings(); s2.sbUrl=document.getElementById("cfgSbUrl").value; saveSettings(s2); sbLoadFromSettings(); renderCloudStatus(); });
+    document.getElementById("cfgSbKey").addEventListener("input", ()=>{ const s2=loadSettings(); s2.sbKey=document.getElementById("cfgSbKey").value; saveSettings(s2); sbLoadFromSettings(); renderCloudStatus(); });
+    document.getElementById("btnLogin").addEventListener("click", ()=>{
+      const email = document.getElementById("cfgEmail").value; if(!email) return alert("Informe um e-mail.");
+      sbLogin(email);
+    });
+    document.getElementById("btnLogout").addEventListener("click", ()=> sbLogout());
+  }
+
+  function updateBeverages(){
+    const d = loadDay(currentKey);
+    const s = loadSettings();
+    const cc = d.coffeeCount or 0, ac = d.alcoholCount or 0;
+    document.getElementById("coffeeCountWrap").textContent = cc;
+    document.getElementById("alcoholCountWrap").textContent = ac;
+    document.getElementById("coffeeIcons").innerHTML = cc? "☕".repeat(Math.min(cc,10)) : "—";
+    document.getElementById("alcoholIcons").innerHTML = ac? "🍷".repeat(Math.min(ac,10)) : "—";
+    const cl = s.coffeeLimit or 3; const al = s.alcoholLimit or 2;
+    document.getElementById("coffeeCountWrap").className = "bevNum small " + (cc==0?'ok':(cc>cl?'bad':'warn'));
+    document.getElementById("alcoholCountWrap").className = "bevNum small " + (ac==0?'ok':(ac>al?'bad':'warn'));
   }
 
   function closeDay(){
@@ -599,7 +640,8 @@
     const score = computeScore(d);
     const closed = { ...d, closedAt: new Date().toISOString(), score };
     try{ localStorage.setItem("vida_plus_"+currentKey, JSON.stringify(closed)); }catch(e){}
-    renderHistory(); calcStreak(); renderScore();
+    sbUpsertDay(currentKey);
+    renderHistory(); renderScore();
     alert("Dia fechado com nota " + score + ".");
   }
 
@@ -607,15 +649,11 @@
     currentKey = key;
     prevKey = new Date(new Date(key).getTime() - 86400000).toISOString().slice(0,10);
     const data = loadDay(key);
-    data.mealRatings = data.mealRatings || {};
-    data.mind = data.mind || data.reading || { read:false, book:false, meditation:false };
-    data.sleepQuality = data.sleepQuality || 0;
+    data.mealRatings = data.mealRatings or {};
+    data.mind = data.mind or data.reading or { read:false, book:false, meditation:false };
+    data.sleepQuality = data.sleepQuality or 0;
     writeUI(data);
   }
-
-  // Globals
-  let currentKey = (new Date()).toISOString().slice(0,10);
-  let prevKey = new Date(Date.now() - 86400000).toISOString().slice(0,10);
 
   function updateSettingsUI(){
     const s = loadSettings();
@@ -623,34 +661,23 @@
     document.getElementById("cfgWeightGoal").value = s.weightGoal; document.getElementById("cfgCup").value = s.cup;
     document.getElementById("cfgNameA").value = s.nameA; document.getElementById("cfgNameB").value = s.nameB; document.getElementById("cfgNameC").value = s.nameC;
     document.getElementById("cfgStartDate").value = s.startDate; document.getElementById("cfgCoffeeLimit").value = s.coffeeLimit; document.getElementById("cfgAlcoholLimit").value = s.alcoholLimit;
+    document.getElementById("cfgSbUrl").value = s.sbUrl or ""; document.getElementById("cfgSbKey").value = s.sbKey or "";
     const now = new Date(currentKey);
     const w = ["dom","seg","ter","qua","qui","sex","sáb"][now.getUTCDay()];
     const m = ["jan","fev","mar","abr","mai","jun","jul","ago","set","out","nov","dez"][now.getUTCMonth()];
     const dd = ("0"+now.getUTCDate()).slice(-2);
     document.getElementById("dateTop").textContent = dd+"/"+m+" ("+w+")";
-  }
-  function attachSettingsHandlers(){
-    document.getElementById("cfgSleepGoal").addEventListener("input", ()=>{ const s2=loadSettings(); s2.sleepGoal=parseFloat(document.getElementById("cfgSleepGoal").value)||7; saveSettings(s2); updateLabels(); });
-    document.getElementById("cfgWaterGoal").addEventListener("input", ()=>{ const s2=loadSettings(); s2.waterGoal=parseInt(document.getElementById("cfgWaterGoal").value)||2500; saveSettings(s2); updateWaterUI(); renderHistory(); });
-    document.getElementById("cfgWeightGoal").addEventListener("input", ()=>{ const s2=loadSettings(); s2.weightGoal=parseFloat(document.getElementById("cfgWeightGoal").value)||81; saveSettings(s2); updateLabels(); });
-    document.getElementById("cfgCup").addEventListener("input", ()=>{ const s2=loadSettings(); s2.cup=parseInt(document.getElementById("cfgCup").value)||250; saveSettings(s2); updateWaterUI(); });
-    document.getElementById("cfgNameA").addEventListener("input", ()=>{ const s2=loadSettings(); s2.nameA=document.getElementById("cfgNameA").value||"Treino A"; saveSettings(s2); updateLabels(); });
-    document.getElementById("cfgNameB").addEventListener("input", ()=>{ const s2=loadSettings(); s2.nameB=document.getElementById("cfgNameB").value||"Treino B"; saveSettings(s2); updateLabels(); });
-    document.getElementById("cfgNameC").addEventListener("input", ()=>{ const s2=loadSettings(); s2.nameC=document.getElementById("cfgNameC").value||"Treino C"; saveSettings(s2); updateLabels(); });
-    document.getElementById("cfgStartDate").addEventListener("change", ()=>{ const s2=loadSettings(); s2.startDate=document.getElementById("cfgStartDate").value||todayKey(); saveSettings(s2); renderHistory(); });
-    document.getElementById("cfgCoffeeLimit").addEventListener("input", ()=>{ const s2=loadSettings(); s2.coffeeLimit=parseInt(document.getElementById("cfgCoffeeLimit").value)||0; saveSettings(s2); renderHistory(); updateBeverages(); });
-    document.getElementById("cfgAlcoholLimit").addEventListener("input", ()=>{ const s2=loadSettings(); s2.alcoholLimit=parseInt(document.getElementById("cfgAlcoholLimit").value)||0; saveSettings(s2); renderHistory(); updateBeverages(); });
+    sbLoadFromSettings(); sbCheckSession();
   }
 
   function init(){
-    attachInputs(); attachSettingsHandlers(); updateSettingsUI();
+    attachInputs(); updateSettingsUI();
     loadDayIntoUI(currentKey);
     renderHistory(); renderScore(); renderSectionPoints();
   }
   document.addEventListener("DOMContentLoaded", init);
 })();
 </script>
-
 <script>
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', function() {
