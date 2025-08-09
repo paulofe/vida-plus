@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Vida+ (v4.5.0)</title>
+<title>Vida+ (v4.5.1)</title>
 <meta name="theme-color" content="#0e0f12">
 <link rel="manifest" href="manifest.webmanifest">
 <style>
@@ -552,8 +552,7 @@ function renderHistory(){
   el("avgNote").textContent = countNote? Math.round(sumNote/countNote) : "—";
   el("avgWeight").textContent = countW? (Math.round((sumW/countW)*10)/10).toFixed(1)+" kg" : "—";
   el("avgIcons").textContent = ""; // intencionalmente vazio
-  rows.forEach(({key,d})=>{
-    const div=document.createElement("div"); div.className="histRow";
+  rows.forEach(({key,d})=>{ const div=document.createElement(\"div\"); div.className=\"histRow\"; div.onclick=()=>{ loadDayIntoUI(key); window.scrollTo({top:0,behavior:'smooth'}); };
     const note = computeScore(d||{});
     const mindIcon = (d?.mind?.read||d?.mind?.book||d?.mind?.meditation) ? "🧠" : "";
     const cups = d?.coffeeCount||0, wines=d?.alcoholCount||0;
