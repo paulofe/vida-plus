@@ -1,4 +1,4 @@
-/* Vida+ v5.0.1 — login gate + gráfico + ajustes histórico */
+/* Vida+ v5.1.0 — auth email+senha, item 6, espaçamentos, CSV com user_id, Nuke */
 const pad=(n)=>String(n).padStart(2,'0');
 const months=['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
 const days=['dom','seg','ter','qua','qui','sex','sáb'];
@@ -10,7 +10,7 @@ const $=(id)=>document.getElementById(id);
 /* Pesos (total 100) */
 const WEIGHTS={ sleep:25, food:45, exercise:15, water:10, mind:5 };
 
-const LS='vida_plus_days_v1', LSCFG='vida_plus_cfg_v1';
+const LS='vida_plus_days_v1', LSCFG='vida_plus_cfg_v1', LSLAST='vida_plus_meta_v1';
 
 const state={ currentKey: toKey(), cache:{}, config: { metaSleepH:7, metaWaterML:2500, cupML:250, startCampaign: toKey(), weightTarget:81, walkGoalMin:30, coffeeLimit:3, alcoholLimit:1 } };
 
@@ -89,13 +89,23 @@ function renderAll(){
     foodList.appendChild(row);
   });
 
-  // EXERCÍCIO
+  // EXERCÍCIO (item 6)
+  const lastWorkout = (localStorage.getItem(LSLAST)||'').toString();
+  const suggestNext = (prev)=> prev==='A'?'B':(prev==='B'?'C':'A');
+  const sug= suggestNext(lastWorkout||'C');
   const secEx=document.createElement('section');
+  const walkPct=Math.min(100, Math.round((day.exercise.walkMin||0)/(state.config.walkGoalMin||30)*100));
   secEx.innerHTML=`<h2>🏃 Exercício <span class="secPts">${sDay.breakdown.exercise} / ${WEIGHTS.exercise}</span></h2>
-  <div class="row">${['A','B','C'].map(n=>`<div class="chip" data-w="${n}" aria-pressed="${day.exercise.workout===n}">Treino ${n}</div>`).join('')}</div>
-  <div class="col" style="margin-top:8px"><span class="small muted">Caminhada (min)</span><input id="walkMin" type="number" placeholder="ex: 30" value="${day.exercise.walkMin||''}" style="max-width:140px" /></div>`;
+  <div class="row">${['A','B','C'].map(n=>`<div class="chip" data-w="${n}" aria-pressed="${day.exercise.workout===n}" title="${n===sug?'Sugerido hoje':''}" style="${n===sug?'outline:1px solid #7aa7ff':''}">Treino ${n}</div>`).join('')}</div>
+  <div class="col" style="margin-top:8px">
+    <span class="small muted">Caminhada (min) — <span class="smallish">${walkPct}% da meta</span></span>
+    <div class="row">
+      <input id="walkMin" type="number" placeholder="ex: 30" value="${day.exercise.walkMin||''}" style="max-width:140px" />
+      <progress id="walkProg" max="100" value="${walkPct}" style="flex:1"></progress>
+    </div>
+  </div>`;
   main.appendChild(secEx);
-  secEx.querySelectorAll('[data-w]').forEach(b=>{ b.onclick=()=>{ const n=b.dataset.w; day.exercise.workout=(day.exercise.workout===n)?'':n; saveLocal(); setTop(); renderAll(); SYNC.upsertDay(state.currentKey); }; });
+  secEx.querySelectorAll('[data-w]').forEach(b=>{ b.onclick=()=>{ const n=b.dataset.w; day.exercise.workout=(day.exercise.workout===n)?'':n; if(day.exercise.workout) localStorage.setItem(LSLAST, day.exercise.workout); saveLocal(); setTop(); renderAll(); SYNC.upsertDay(state.currentKey); }; });
   secEx.querySelector('#walkMin').onchange=(e)=>{ const v=parseInt(e.target.value||'0',10); day.exercise.walkMin=isNaN(v)?0:v; saveLocal(); setTop(); renderAll(); SYNC.upsertDay(state.currentKey); };
 
   // MENTE
@@ -165,8 +175,8 @@ function renderAll(){
   // GRÁFICO
   drawChart(keys.slice().reverse());
   window.addEventListener('resize', ()=> drawChart(Object.keys(state.cache).sort()));
-
-  // CONFIGS
+  
+  // CONFIGS (valores + botões)
   $('cfgSleep').value=state.config.metaSleepH; $('cfgWater').value=state.config.metaWaterML; $('cfgCup').value=state.config.cupML;
   $('cfgTarget').value=state.config.weightTarget; $('cfgWalk').value=state.config.walkGoalMin;
   $('cfgCoffee').value=state.config.coffeeLimit; $('cfgAlcohol').value=state.config.alcoholLimit; $('cfgStart').value=state.config.startCampaign;
@@ -175,15 +185,17 @@ function renderAll(){
     state.config.weightTarget=Number($('cfgTarget').value||81); state.config.walkGoalMin=Number($('cfgWalk').value||30);
     state.config.coffeeLimit=Number($('cfgCoffee').value||3); state.config.alcoholLimit=Number($('cfgAlcohol').value||1);
     state.config.startCampaign=$('cfgStart').value||toKey(); saveLocal(); renderAll(); };
+
   $('cfgReset').onclick=()=>{ Object.assign(state.config, { metaSleepH:7, metaWaterML:2500, cupML:250, startCampaign: toKey(), weightTarget:81, walkGoalMin:30, coffeeLimit:3, alcoholLimit:1 }); saveLocal(); renderAll(); };
 
-  // EXPORT CSV
   $('btnExport').onclick = async ()=>{
     if(window.__supa){ try{ await SYNC.pullCampaign(); }catch(e){ console.warn('pull before export', e); } }
+    const { data:{ user } } = await (supabaseClient?.auth.getUser()||{data:{}});
+    const uid = user?.id || '';
     const keysAsc = Object.keys(state.cache).sort();
     const rows = [];
     rows.push([
-      'date','score_total','score_sleep','score_food','score_exercise','score_water','score_mind',
+      'user_id','date','score_total','score_sleep','score_food','score_exercise','score_water','score_mind',
       'weight','sleep_hours','sleep_quality',
       'food_breakfast','food_snack1','food_lunch','food_snack2','food_dinner',
       'exercise_walkMin','exercise_workout',
@@ -194,7 +206,7 @@ function renderAll(){
       const d = state.cache[k]||emptyDay();
       const sc = scoreForDay(d);
       const row = [
-        k, sc.total, sc.breakdown.sleep, sc.breakdown.food, sc.breakdown.exercise, sc.breakdown.water, sc.breakdown.mind,
+        uid, k, sc.total, sc.breakdown.sleep, sc.breakdown.food, sc.breakdown.exercise, sc.breakdown.water, sc.breakdown.mind,
         (d.weight??''),
         (d.sleep?.hours??''), (d.sleep?.quality??''),
         (d.food?.breakfast??0),(d.food?.snack1??0),(d.food?.lunch??0),(d.food?.snack2??0),(d.food?.dinner??0),
@@ -210,9 +222,22 @@ function renderAll(){
     a.download = `vida_plus_export_${toKey()}.csv`;
     document.body.appendChild(a); a.click(); a.remove();
   };
+
+  // Logout e Nuke
+  $('btnSignOut').onclick = async ()=>{ await supabaseClient?.auth.signOut(); location.reload(); };
+  $('btnNuke').onclick = async ()=>{
+    const txt = prompt('Para confirmar digite: APAGAR');
+    if(txt!=='APAGAR') return;
+    try{
+      const { data:{ user } } = await (supabaseClient?.auth.getUser()||{data:{}});
+      if(user){ await supabaseClient.from('days').delete().eq('user_id', user.id); }
+    }catch(e){ console.warn('delete supa',e); }
+    localStorage.removeItem(LS); localStorage.removeItem(LSCFG);
+    location.reload();
+  };
 }
 
-/* ===== Gráfico custom (linha peso + barras da pontuação) ===== */
+/* ===== Gráfico ===== */
 function drawChart(keysAsc){
   const sec = document.getElementById('chartSec'); const cvs = document.getElementById('chartCanvas');
   if(!sec||!cvs){ return; }
@@ -230,14 +255,12 @@ function drawChart(keysAsc){
   const scores = data.map(o=>o.s);
   const weights = data.map(o=> typeof o.d.weight==='number' ? o.d.weight : null);
 
-  // Escalas
   const padL=34, padR=34, padT=10, padB=18;
   const plotW=W-padL-padR, plotH=H-padT-padB;
   const n=data.length;
   const xFor=(i)=> padL + (plotW*(i+0.5)/n);
   const barW = Math.max(2, plotW/n*0.6);
 
-  // Barras da nota (0-100)
   ctx.fillStyle='rgba(255,255,255,0.18)';
   for(let i=0;i<n;i++){
     const s = Math.max(0, Math.min(100, scores[i]||0));
@@ -246,7 +269,6 @@ function drawChart(keysAsc){
     ctx.fillRect(xFor(i)-barW/2, y, barW, h);
   }
 
-  // Linha do peso (eixo direito)
   const wVals = weights.filter(v=>v!=null);
   if(wVals.length>0){
     let minW = Math.min.apply(null, wVals);
@@ -264,7 +286,6 @@ function drawChart(keysAsc){
     ctx.lineWidth=2; ctx.strokeStyle='#7aa7ff'; ctx.stroke();
   }
 
-  // datas inicial e final
   ctx.globalAlpha=0.3;
   ctx.font='10px system-ui, -apple-system, Segoe UI, Roboto, Arial';
   ctx.fillStyle='#bbb';
@@ -272,12 +293,12 @@ function drawChart(keysAsc){
     const first = keysAsc[0].slice(5).replace('-','/');
     const last = keysAsc[n-1].slice(5).replace('-','/');
     ctx.fillText(first, padL, H-4);
-    ctx.fillText(last, W-padR-28, H-4);
+    ctx.fillText(last, W-34-28, H-4);
   }
   ctx.globalAlpha=1;
 }
 
-/* ===== Supabase Auth + Login Gate ===== */
+/* ===== Auth email+senha + Gate ===== */
 let supabaseClient=null;
 function setGate(isLocked){
   const main=document.querySelector('main');
@@ -286,9 +307,6 @@ function setGate(isLocked){
   const login=document.getElementById('loginWrap');
   const center=document.getElementById('hdrCenter');
   const dateTop=document.getElementById('dateTop');
-  const authEmail=document.getElementById('authEmail');
-  const authSend=document.getElementById('authSend');
-
   if(isLocked){
     login.style.display='block';
     main.style.display='none';
@@ -296,8 +314,6 @@ function setGate(isLocked){
     chart.style.display='none';
     center.style.visibility='hidden';
     dateTop.style.visibility='hidden';
-    if(authEmail) authEmail.style.display='none';
-    if(authSend) authSend.style.display='none';
   }else{
     login.style.display='none';
     main.style.display='';
@@ -305,47 +321,47 @@ function setGate(isLocked){
     chart.style.display='';
     center.style.visibility='';
     dateTop.style.visibility='';
-    if(authEmail) authEmail.style.display='none';
-    if(authSend) authSend.style.display='none';
   }
 }
 
-async function authInit(){
-  const msg=$('authMsg'), btn=$('authSend');
-  if(msg) msg.textContent='checando…'; if(btn) btn.disabled=true;
-  try{ const res=await fetch(window.SUPABASE_URL+'/auth/v1/settings',{ headers:{ apikey: window.SUPABASE_ANON_KEY } }); const ok=res.ok; if(msg) msg.textContent= ok? 'online':'offline'; if(btn) btn.disabled=!ok; }
-  catch(_){ if(msg) msg.textContent='offline'; if(btn) btn.disabled=true; }
+function setAuthStatus(text){ const el=$('authStatus'); if(el) el.textContent='Status: '+text; }
 
+async function authInit(){
   supabaseClient = window.supabase.createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY);
   window.__supa = supabaseClient;
+  setAuthStatus('conectando…');
 
   const { data:{ session } } = await supabaseClient.auth.getSession();
-  if(session?.user){ onLoginUI(); await SYNC.pullCampaign(); setGate(false); renderAll(); }
-  else { onLogoutUI(); setGate(true); }
+  if(session?.user){ setAuthStatus('logado como '+(session.user.email||session.user.id)); onLoginUI(); await SYNC.pullCampaign(); setGate(false); renderAll(); }
+  else { setAuthStatus('deslogado'); onLogoutUI(); setGate(true); }
 
   supabaseClient.auth.onAuthStateChange(async (event, sess)=>{
-    if(event==='SIGNED_IN' && sess?.user){ onLoginUI(); await SYNC.pullCampaign(); setGate(false); renderAll(); }
-    if(event==='SIGNED_OUT'){ onLogoutUI(); setGate(true); }
+    if(event==='SIGNED_IN' && sess?.user){ setAuthStatus('logado como '+(sess.user.email||sess.user.id)); onLoginUI(); await SYNC.pullCampaign(); setGate(false); renderAll(); }
+    if(event==='SIGNED_OUT'){ setAuthStatus('deslogado'); onLogoutUI(); setGate(true); }
+    if(event==='PASSWORD_RECOVERY'){ setAuthStatus('redefinição de senha iniciada'); }
   });
 
-  // Login minimal
-  const loginSend=$('loginSend'); const loginEmail=$('loginEmail'); const loginMsg=$('loginMsg');
-  if(loginSend){ loginSend.onclick = async()=>{
-    const email=(loginEmail.value||'').trim();
-    if(!email){ loginMsg.textContent='Informe seu e-mail'; return; }
-    loginSend.disabled=true; loginMsg.textContent='Enviando…';
+  const email=$('loginEmail'), pass=$('loginPass'), msg=$('loginMsg');
+  $('btnSignIn').onclick=async()=>{
+    msg.textContent='Entrando…';
+    const { error } = await supabaseClient.auth.signInWithPassword({ email:email.value, password:pass.value });
+    msg.textContent = error ? ('Erro: '+error.message) : 'OK!';
+  };
+  $('btnSignUp').onclick=async()=>{
+    msg.textContent='Criando…';
+    const { error } = await supabaseClient.auth.signUp({ email:email.value, password:pass.value });
+    msg.textContent = error ? ('Erro: '+error.message) : 'Conta criada! Verifique seu e-mail se solicitado.';
+  };
+  $('btnReset').onclick=async()=>{
+    msg.textContent='Enviando e-mail de redefinição…';
     const base = location.origin + (location.pathname.endsWith('/') ? location.pathname : location.pathname.replace(/[^\/]+$/, '/'));
-    const { error } = await supabaseClient.auth.signInWithOtp({ email, options:{ emailRedirectTo: base, shouldCreateUser:true } });
-    loginMsg.textContent = error ? ('Erro: '+error.message) : 'Link enviado! Verifique seu e-mail.';
-    loginSend.disabled=false;
-  }};
-
-  // Sair
-  const out=$('authSignOut'); if(out) out.onclick=async()=>{ await supabaseClient.auth.signOut(); };
+    const { error } = await supabaseClient.auth.resetPasswordForEmail(email.value, { redirectTo: base });
+    msg.textContent = error ? ('Erro: '+error.message) : 'E-mail enviado!';
+  };
 }
 
-function onLoginUI(){ const m=$('authMsg'); if(m) m.textContent='logado'; const o=$('authSignOut'); if(o) o.style.display=''; }
-function onLogoutUI(){ const m=$('authMsg'); if(m) m.textContent='online'; const o=$('authSignOut'); if(o) o.style.display='none'; }
+function onLoginUI(){}
+function onLogoutUI(){}
 
 async function pullCampaign(){
   if(!supabaseClient) return;
