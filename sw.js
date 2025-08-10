@@ -1,5 +1,5 @@
-// SW Vida+ v5.1.0
-const CACHE='vida-plus-v5.1.0';
+// SW Vida+ v5.1.1
+const CACHE='vida-plus-v5.1.1';
 const APP_SHELL=['icon-96.png','icon-128.png','icon-192.png','icon-512.png','manifest.webmanifest'];
 
 self.addEventListener('install',e=>{ e.waitUntil(caches.open(CACHE).then(c=>c.addAll(APP_SHELL))); self.skipWaiting(); });

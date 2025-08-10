@@ -1,4 +1,4 @@
-/* Vida+ v5.1.0 — auth email+senha, item 6, espaçamentos, CSV com user_id, Nuke */
+/* Vida+ v5.1.1 — v5.1.1 fixes (auth robusto, CSV robusto, cfgEnd, projeção, espaçamentos, bebidas) */
 const pad=(n)=>String(n).padStart(2,'0');
 const months=['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
 const days=['dom','seg','ter','qua','qui','sex','sáb'];
@@ -12,7 +12,7 @@ const WEIGHTS={ sleep:25, food:45, exercise:15, water:10, mind:5 };
 
 const LS='vida_plus_days_v1', LSCFG='vida_plus_cfg_v1', LSLAST='vida_plus_meta_v1';
 
-const state={ currentKey: toKey(), cache:{}, config: { metaSleepH:7, metaWaterML:2500, cupML:250, startCampaign: toKey(), weightTarget:81, walkGoalMin:30, coffeeLimit:3, alcoholLimit:1 } };
+const state={ currentKey: toKey(), cache:{}, config: { metaSleepH:7, metaWaterML:2500, cupML:250, startCampaign: toKey(), endCampaign:'', weightTarget:81, walkGoalMin:30, coffeeLimit:3, alcoholLimit:1 } };
 
 function loadLocal(){ try{Object.assign(state.config, JSON.parse(localStorage.getItem(LSCFG)||'{}'))}catch{} try{state.cache=JSON.parse(localStorage.getItem(LS)||'{}')}catch{} }
 function saveLocal(){ localStorage.setItem(LS, JSON.stringify(state.cache)); localStorage.setItem(LSCFG, JSON.stringify(state.config)); }
@@ -89,7 +89,7 @@ function renderAll(){
     foodList.appendChild(row);
   });
 
-  // EXERCÍCIO (item 6)
+  // EXERCÍCIO
   const lastWorkout = (localStorage.getItem(LSLAST)||'').toString();
   const suggestNext = (prev)=> prev==='A'?'B':(prev==='B'?'C':'A');
   const sug= suggestNext(lastWorkout||'C');
@@ -173,54 +173,56 @@ function renderAll(){
   });
 
   // GRÁFICO
-  drawChart(keys.slice().reverse());
+  const ascKeys = Object.keys(state.cache).sort();
+  drawChart(ascKeys);
   window.addEventListener('resize', ()=> drawChart(Object.keys(state.cache).sort()));
   
-  // CONFIGS (valores + botões)
+  // CONFIGS
   $('cfgSleep').value=state.config.metaSleepH; $('cfgWater').value=state.config.metaWaterML; $('cfgCup').value=state.config.cupML;
   $('cfgTarget').value=state.config.weightTarget; $('cfgWalk').value=state.config.walkGoalMin;
-  $('cfgCoffee').value=state.config.coffeeLimit; $('cfgAlcohol').value=state.config.alcoholLimit; $('cfgStart').value=state.config.startCampaign;
+  $('cfgCoffee').value=state.config.coffeeLimit; $('cfgAlcohol').value=state.config.alcoholLimit; $('cfgStart').value=state.config.startCampaign; $('cfgEnd').value=state.config.endCampaign||'';
   $('cfgSave').onclick=()=>{ state.config.metaSleepH=Number($('cfgSleep').value||7);
     state.config.metaWaterML=Number($('cfgWater').value||2500); state.config.cupML=Number($('cfgCup').value||250);
     state.config.weightTarget=Number($('cfgTarget').value||81); state.config.walkGoalMin=Number($('cfgWalk').value||30);
     state.config.coffeeLimit=Number($('cfgCoffee').value||3); state.config.alcoholLimit=Number($('cfgAlcohol').value||1);
-    state.config.startCampaign=$('cfgStart').value||toKey(); saveLocal(); renderAll(); };
+    state.config.startCampaign=$('cfgStart').value||toKey(); state.config.endCampaign=$('cfgEnd').value||''; saveLocal(); renderAll(); };
 
-  $('cfgReset').onclick=()=>{ Object.assign(state.config, { metaSleepH:7, metaWaterML:2500, cupML:250, startCampaign: toKey(), weightTarget:81, walkGoalMin:30, coffeeLimit:3, alcoholLimit:1 }); saveLocal(); renderAll(); };
+  $('cfgReset').onclick=()=>{ Object.assign(state.config, { metaSleepH:7, metaWaterML:2500, cupML:250, startCampaign: toKey(), endCampaign:'', weightTarget:81, walkGoalMin:30, coffeeLimit:3, alcoholLimit:1 }); saveLocal(); renderAll(); };
 
+  // EXPORT CSV robusto
   $('btnExport').onclick = async ()=>{
-    if(window.__supa){ try{ await SYNC.pullCampaign(); }catch(e){ console.warn('pull before export', e); } }
-    const { data:{ user } } = await (supabaseClient?.auth.getUser()||{data:{}});
-    const uid = user?.id || '';
-    const keysAsc = Object.keys(state.cache).sort();
-    const rows = [];
-    rows.push([
-      'user_id','date','score_total','score_sleep','score_food','score_exercise','score_water','score_mind',
-      'weight','sleep_hours','sleep_quality',
-      'food_breakfast','food_snack1','food_lunch','food_snack2','food_dinner',
-      'exercise_walkMin','exercise_workout',
-      'mind_read','mind_book','mind_meditate',
-      'water_ml','drinks_coffee','drinks_alcohol'
-    ].join(','));
-    keysAsc.forEach(k=>{
-      const d = state.cache[k]||emptyDay();
-      const sc = scoreForDay(d);
-      const row = [
-        uid, k, sc.total, sc.breakdown.sleep, sc.breakdown.food, sc.breakdown.exercise, sc.breakdown.water, sc.breakdown.mind,
-        (d.weight??''),
-        (d.sleep?.hours??''), (d.sleep?.quality??''),
-        (d.food?.breakfast??0),(d.food?.snack1??0),(d.food?.lunch??0),(d.food?.snack2??0),(d.food?.dinner??0),
-        (d.exercise?.walkMin??0), `"${(d.exercise?.workout||'')}"`,
-        (d.mind?.read?1:0),(d.mind?.book?1:0),(d.mind?.meditate?1:0),
-        (d.water?.ml??0),(d.drinks?.coffee??0),(d.drinks?.alcohol??0)
-      ];
-      rows.push(row.join(','));
-    });
-    const blob = new Blob([rows.join('\\n')], {type:'text/csv;charset=utf-8;'});
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = `vida_plus_export_${toKey()}.csv`;
-    document.body.appendChild(a); a.click(); a.remove();
+    try{
+      if(window.__supa){ try{ await SYNC.pullCampaign(); }catch(e){ console.warn('pull before export', e); } }
+      let uid=''; try{ const r=await (supabaseClient?.auth.getUser()||Promise.resolve({data:{}})); uid=r?.data?.user?.id||'';}catch{}
+      const keysAsc = Object.keys(state.cache).sort();
+      const rows = [];
+      rows.push([
+        'user_id','date','score_total','score_sleep','score_food','score_exercise','score_water','score_mind',
+        'weight','sleep_hours','sleep_quality',
+        'food_breakfast','food_snack1','food_lunch','food_snack2','food_dinner',
+        'exercise_walkMin','exercise_workout',
+        'mind_read','mind_book','mind_meditate',
+        'water_ml','drinks_coffee','drinks_alcohol'
+      ].join(','));
+      keysAsc.forEach(k=>{
+        const d = state.cache[k]||emptyDay();
+        const sc = scoreForDay(d);
+        rows.push([
+          uid, k, sc.total, sc.breakdown.sleep, sc.breakdown.food, sc.breakdown.exercise, sc.breakdown.water, sc.breakdown.mind,
+          (d.weight??''),
+          (d.sleep?.hours??''), (d.sleep?.quality??''),
+          (d.food?.breakfast??0),(d.food?.snack1??0),(d.food?.lunch??0),(d.food?.snack2??0),(d.food?.dinner??0),
+          (d.exercise?.walkMin??0), `"${(d.exercise?.workout||'')}"`,
+          (d.mind?.read?1:0),(d.mind?.book?1:0),(d.mind?.meditate?1:0),
+          (d.water?.ml??0),(d.drinks?.coffee??0),(d.drinks?.alcohol??0)
+        ].join(','));
+      });
+      const blob = new Blob([rows.join('\\n')], {type:'text/csv;charset=utf-8;'});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = `vida_plus_export_${toKey()}.csv`; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+      const m=$('cfgMsg'); if(m){ m.textContent='CSV exportado com sucesso.'; setTimeout(()=>m.textContent='',3000); }
+    }catch(err){ console.error('CSV export error', err); const m=$('cfgMsg'); if(m){ m.textContent='Falha ao exportar. Veja o console.'; } }
   };
 
   // Logout e Nuke
@@ -237,12 +239,11 @@ function renderAll(){
   };
 }
 
-/* ===== Gráfico ===== */
+/* ===== Gráfico (com projeção) ===== */
 function drawChart(keysAsc){
   const sec = document.getElementById('chartSec'); const cvs = document.getElementById('chartCanvas');
   if(!sec||!cvs){ return; }
-  const dataCount = keysAsc.length;
-  if(dataCount===0){ sec.style.display='none'; return; }
+  if(keysAsc.length===0){ sec.style.display='none'; return; }
 
   const w = Math.min(860, document.body.clientWidth - 28);
   cvs.width = w; sec.style.display = 'block';
@@ -270,9 +271,10 @@ function drawChart(keysAsc){
   }
 
   const wVals = weights.filter(v=>v!=null);
+  let minW, maxW;
+  if(wVals.length>0){ minW = Math.min.apply(null, wVals); maxW = Math.max.apply(null, wVals); }
+
   if(wVals.length>0){
-    let minW = Math.min.apply(null, wVals);
-    let maxW = Math.max.apply(null, wVals);
     if(minW==maxW){ minW-=0.5; maxW+=0.5; }
     const yW=(v)=> padT + plotH * (1 - ( (v-minW)/(maxW-minW) ));
     ctx.beginPath();
@@ -286,6 +288,38 @@ function drawChart(keysAsc){
     ctx.lineWidth=2; ctx.strokeStyle='#7aa7ff'; ctx.stroke();
   }
 
+  // Projeção até meta (usa startCampaign, endCampaign, weightTarget e peso inicial no período)
+  try{
+    const start=(state.config.startCampaign||'').trim();
+    const end=(state.config.endCampaign||'').trim();
+    const target=Number(state.config.weightTarget||0);
+    if(start && end && target){
+      const startIdx = keysAsc.findIndex(k=>k>=start);
+      const endIdxCandidate = keysAsc.findIndex(k=>k>=end);
+      const endIdx = endIdxCandidate>=0 ? endIdxCandidate : keysAsc.length-1;
+
+      let initIdx=-1, initW=null;
+      for(let i=max(0,startIdx); i<keysAsc.length; i++){
+        const v = state.cache[keysAsc[i]]?.weight;
+        if(typeof v==='number'){ initIdx=i; initW=v; break; }
+      }
+      if(initIdx>=0 && initW!=null && endIdx>initIdx){
+        let minAll = (typeof minW==='number')?Math.min(minW, target):target;
+        let maxAll = (typeof maxW==='number')?Math.max(maxW, target):target;
+        if(minAll==maxAll){ minAll-=0.5; maxAll+=0.5; }
+        const yW2=(v)=> 10 + (H-10-18) * (1 - ( (v-minAll)/(maxAll-minAll) ));
+        const x0 = xFor(initIdx);
+        const x1 = xFor(endIdx);
+        const y0 = yW2(initW);
+        const y1 = yW2(target);
+        const dash=[5,4]; ctx.setLineDash(dash);
+        ctx.lineWidth=1.8; ctx.strokeStyle='rgba(255,255,255,0.35)';
+        ctx.beginPath(); ctx.moveTo(x0,y0); ctx.lineTo(x1,y1); ctx.stroke();
+        ctx.setLineDash([]);
+      }
+    }
+  }catch(e){ console.warn('projection error', e); }
+
   ctx.globalAlpha=0.3;
   ctx.font='10px system-ui, -apple-system, Segoe UI, Roboto, Arial';
   ctx.fillStyle='#bbb';
@@ -293,12 +327,12 @@ function drawChart(keysAsc){
     const first = keysAsc[0].slice(5).replace('-','/');
     const last = keysAsc[n-1].slice(5).replace('-','/');
     ctx.fillText(first, padL, H-4);
-    ctx.fillText(last, W-34-28, H-4);
+    ctx.fillText(last, W-padR-28, H-4);
   }
   ctx.globalAlpha=1;
 }
 
-/* ===== Auth email+senha + Gate ===== */
+/* ===== Auth + Gate robusto ===== */
 let supabaseClient=null;
 function setGate(isLocked){
   const main=document.querySelector('main');
@@ -344,18 +378,19 @@ async function authInit(){
   const email=$('loginEmail'), pass=$('loginPass'), msg=$('loginMsg');
   $('btnSignIn').onclick=async()=>{
     msg.textContent='Entrando…';
-    const { error } = await supabaseClient.auth.signInWithPassword({ email:email.value, password:pass.value });
+    const { error } = await supabaseClient.auth.signInWithPassword({ email:email.value.trim(), password:pass.value });
     msg.textContent = error ? ('Erro: '+error.message) : 'OK!';
   };
   $('btnSignUp').onclick=async()=>{
     msg.textContent='Criando…';
-    const { error } = await supabaseClient.auth.signUp({ email:email.value, password:pass.value });
-    msg.textContent = error ? ('Erro: '+error.message) : 'Conta criada! Verifique seu e-mail se solicitado.';
+    const { data, error } = await supabaseClient.auth.signUp({ email:email.value.trim(), password:pass.value });
+    if (error) { msg.textContent = 'Erro: '+error.message; return; }
+    msg.textContent = data.user?.aud ? 'Conta criada! Verifique seu e-mail para confirmar.' : 'Conta criada!';
   };
   $('btnReset').onclick=async()=>{
     msg.textContent='Enviando e-mail de redefinição…';
     const base = location.origin + (location.pathname.endsWith('/') ? location.pathname : location.pathname.replace(/[^\/]+$/, '/'));
-    const { error } = await supabaseClient.auth.resetPasswordForEmail(email.value, { redirectTo: base });
+    const { error } = await supabaseClient.auth.resetPasswordForEmail(email.value.trim(), { redirectTo: base });
     msg.textContent = error ? ('Erro: '+error.message) : 'E-mail enviado!';
   };
 }
@@ -368,15 +403,18 @@ async function pullCampaign(){
   const { data:{ user } } = await supabaseClient.auth.getUser(); if(!user) return;
   const from=state.config.startCampaign||toKey();
   const { data, error } = await supabaseClient.from('days').select('date,data,updated_at').eq('user_id', user.id).gte('date', from).order('date',{ascending:true});
-  if(error){ console.warn('pull',error); return; }
+  if(error){ console.error('pull error', error); setAuthStatus('erro ao sincronizar'); return; }
   (data||[]).forEach(r=> state.cache[r.date]=r.data||{});
   saveLocal();
+  setAuthStatus('sincronizado agora');
 }
 async function upsertDay(k){
   if(!supabaseClient) return;
   const { data:{ user } } = await supabaseClient.auth.getUser(); if(!user) return;
   const payload={ user_id:user.id, date:k, data: state.cache[k]||{} };
-  const { error } = await supabaseClient.from('days').upsert(payload).select(); if(error) console.warn('upsert',error);
+  const { error } = await supabaseClient.from('days').upsert(payload).select();
+  if(error){ console.error('upsert error', error); setAuthStatus('erro ao salvar'); }
+  else { setAuthStatus('salvo'); }
 }
 const SYNC={ pullCampaign, upsertDay };
 
