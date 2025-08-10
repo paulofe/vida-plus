@@ -4,7 +4,7 @@ const $ = (q)=>document.querySelector(q), $$=(q)=>document.querySelectorAll(q);
 const months=['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'], wd=['dom','seg','ter','qua','qui','sex','sáb'];
 const fmtDate = (d)=>{ const z=new Date(d), y=z.getFullYear(), m=('0'+(z.getMonth()+1)).slice(-2), dd=('0'+z.getDate()).slice(-2); return `${y}-${m}-${dd}`; };
 const dispDate = (dstr)=>{ const d=new Date(dstr); return ('0'+d.getDate()).slice(-2)+'/'+months[d.getMonth()]+' ('+wd[d.getDay()]+')'; };
-
+ 
 let USER=null, SESSION=null;
 let CFG={ sleep:7, water:2500, goal:81, cup:250, start:null, end:null, coffeeLimit:3, alcoholLimit:1 };
 let DAY=defaultDay();
