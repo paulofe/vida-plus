@@ -326,3 +326,60 @@ document.addEventListener('DOMContentLoaded', ()=>{
   });
   bootstrap();
 });
+
+document.addEventListener('DOMContentLoaded', () => {
+  // 2.1 — “ / 100” sem mexer na tipografia
+  const outOf = document.querySelector('.scoreTop .outOf');
+  if (outOf && !outOf.dataset.sepFixed) {
+    outOf.dataset.sepFixed = '1';
+    // se alguém tiver colocado "/" dentro do score antes, normaliza
+    outOf.textContent = '100';
+  }
+
+  // 2.2 — Data do topo = datePicker (sem fuso)
+  const dateTop = document.getElementById('dateTop');
+  const dp = document.getElementById('datePicker');
+
+  function ymd(d){ const y=d.getFullYear(); const m=String(d.getMonth()+1).padStart(2,'0'); const dd=String(d.getDate()).padStart(2,'0'); return `${y}-${m}-${dd}`; }
+  function fromYmd(s){ const [y,m,d]=s.split('-').map(Number); return new Date(y, m-1, d); }
+  function fmtPtShort(d){
+    const o={day:'2-digit',month:'short',weekday:'short'};
+    return d.toLocaleDateString('pt-BR',o).replace('.', '');
+  }
+
+  // valor inicial do input
+  if (!dp.value) dp.value = ymd(new Date());
+  renderDateTop();
+
+  function renderDateTop(){
+    if (!dateTop) return;
+    const d = fromYmd(dp.value);
+    dateTop.textContent = fmtPtShort(d); // ex: "10/ago (dom)"
+  }
+
+  // abre o seletor no iOS/desktop com fallback
+  if (dateTop){
+    dateTop.addEventListener('click', () => {
+      try {
+        if (dp.showPicker) dp.showPicker(); else dp.click();
+      } catch(e) {
+        const s = prompt('Digite a data (AAAA-MM-DD):', dp.value);
+        if (s && /^\d{4}-\d{2}-\d{2}$/.test(s)) {
+          dp.value = s;
+          dp.dispatchEvent(new Event('change', {bubbles:true}));
+        }
+      }
+    });
+  }
+
+  // quando trocar a data, atualiza rótulo e deixa o resto do app reagir
+  dp.addEventListener('change', () => {
+    renderDateTop();
+    // Se seu app já escuta essa troca, dispare um evento genérico:
+    try{ window.dispatchEvent(new CustomEvent('vida:date:change',{detail:{ymd:dp.value}})); }catch(_){}
+    // Se você tiver uma função própria, descomente:
+    // if (typeof window.loadDay === 'function') window.loadDay(dp.value);
+    // ou: if (typeof window.setCurrentYmd === 'function') window.setCurrentYmd(dp.value);
+  });
+});
+
