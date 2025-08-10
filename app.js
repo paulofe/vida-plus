@@ -383,3 +383,80 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 });
 
+// ——— Topo: data correta e iOS datepicker ———
+(function(){
+  const dateTop = document.getElementById('dateTop');
+  const dp = document.getElementById('datePicker');
+  if(!dateTop || !dp) return;
+
+  // Utilidades sem UTC (tudo local)
+  function ymdLocal(d){
+    const y=d.getFullYear(), m=String(d.getMonth()+1).padStart(2,'0'), dd=String(d.getDate()).padStart(2,'0');
+    return `${y}-${m}-${dd}`;
+  }
+  function fromYmdLocal(s){
+    const [y,m,d]=s.split('-').map(Number);
+    return new Date(y, m-1, d); // local, não UTC
+  }
+  function fmtPtShortLocal(d){
+    // Evita . em "ago." no iOS
+    const weekday = d.toLocaleDateString('pt-BR',{weekday:'short'}).replace('.', '');
+    const month   = d.toLocaleDateString('pt-BR',{month:'short'}).replace('.', '');
+    const day     = String(d.getDate()).padStart(2,'0');
+    return `${day}/${month} (${weekday})`;
+  }
+
+  // Inicializa valor do input se vazio
+  if(!dp.value){
+    dp.value = ymdLocal(new Date());
+  }
+
+  // Renderiza rótulo sem offset
+  function renderTopDate(){
+    const d = fromYmdLocal(dp.value);
+    dateTop.textContent = fmtPtShortLocal(d);
+  }
+  renderTopDate();
+
+  // Abre seletor (iOS/desktop). Importante: o input NÃO está display:none
+  dateTop.addEventListener('click', () => {
+    try{
+      if (typeof dp.showPicker === 'function') {
+        dp.showPicker();
+      } else {
+        // iOS precisa foco+click em um elemento visível
+        dp.focus();
+        dp.click();
+      }
+    }catch(e){
+      const s = prompt('Digite a data (AAAA-MM-DD):', dp.value);
+      if (s && /^\d{4}-\d{2}-\d{2}$/.test(s)) {
+        dp.value = s;
+        dp.dispatchEvent(new Event('change', {bubbles:true}));
+      }
+    }
+  });
+
+  dp.addEventListener('change', () => {
+    renderTopDate();
+    // Notifica o app (se você já escuta esse evento, manter)
+    try{ window.dispatchEvent(new CustomEvent('vida:date:change',{detail:{ymd:dp.value}})); }catch(_){}
+    // Se houver função interna pra carregar o dia, descomente:
+    // if (typeof window.loadDay === 'function') window.loadDay(dp.value);
+  });
+
+  // Garante o “ / 100 ” com espaço, sem trocar tipografia
+  const outEl = document.querySelector('.scoreTop .outOf');
+  if (outEl) {
+    outEl.textContent = '100';
+    if (!outEl.dataset.sepFixed) {
+      outEl.dataset.sepFixed = '1';
+      if (!outEl.previousSibling || outEl.previousSibling.textContent.indexOf('/') === -1) {
+        // deixa o /  no elemento anterior, se for o seu HTML, ignore
+        // visualmente o espaço é garantido via CSS pseudo-element no seu CSS,
+        // mas se preferir forçar no texto, comente a linha abaixo e use replace.
+      }
+    }
+  }
+})();
+
