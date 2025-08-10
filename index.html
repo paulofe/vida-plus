@@ -45,8 +45,31 @@ header .dateTop{ justify-self:end; padding:6px 10px; border:1px solid var(--line
 
 /* Insere visualmente o “ / ” antes do 100, sem trocar sua fonte */
 .scoreTop .outOf::before{ content:" / "; opacity:.75; margin:0 2px; }
+
+/* Topo – só o date chip */
+header .dateTop{
+  border: none;              /* remove borda */
+  background: transparent;
+  font-size: 12px;           /* fonte menor pra caber em 1 linha */
+  line-height: 1;
+  padding: 2px 6px;
+  white-space: nowrap;       /* força ficar em 1 linha */
+}
+
+/* Input date “invisível” porém clicável no iOS (NÃO usar display:none) */
+#datePicker{
+  position:absolute; right:10px; top:46px;
+  width:1px; height:1px;
+  opacity:0.01;              /* invisível, porém focável */
+  border:0; background:transparent;
+  z-index:1;                 /* acima do header pra Safari não bloquear */
+}
   
 </style>
+
+
+
+  
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>window.SUPABASE_URL="https://ftqjhcgzlnfuqlktltgw.supabase.co";window.SUPABASE_ANON="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ0cWpoY2d6bG5mdXFsa3RsdGd3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQ3NDk3ODUsImV4cCI6MjA3MDMyNTc4NX0.HwuDNMTCa2erpLsnjRnfwpHCtqBLmBRqMW2lmaASxDM";</script>
 </head><body>
