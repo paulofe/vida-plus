@@ -107,16 +107,35 @@ header .dateTop{
 <script>window.SUPABASE_URL="https://ftqjhcgzlnfuqlktltgw.supabase.co";window.SUPABASE_ANON="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ0cWpoY2d6bG5mdXFsa3RsdGd3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQ3NDk3ODUsImV4cCI6MjA3MDMyNTc4NX0.HwuDNMTCa2erpLsnjRnfwpHCtqBLmBRqMW2lmaASxDM";</script>
 </head><body>
 
-<header>
+<header id="hdr">
+  <style>
+    :root{ --pageW:860px } /* MESMO max-width das suas <section> */
+    header#hdr{
+      position:sticky; top:0; z-index:1000;
+      backdrop-filter:blur(8px);
+      background:rgba(14,15,18,.85);
+      max-width:var(--pageW); margin:0 auto;
+      display:grid; grid-template-columns:auto 1fr auto;
+      align-items:center; gap:12px; padding:10px var(--pad,14px);
+    }
+    .top-center{ justify-self:center; display:flex; gap:12px; align-items:center }
+    .scoreTop .outOf::before{ content:" / "; opacity:.75; margin:0 2px } /* só espaço do / 100 */
+    .dateTop{ border:none; background:transparent; font-size:12px; line-height:1;
+      padding:2px 6px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; justify-self:end }
+  </style>
+
   <h1>Vida+</h1>
+
   <div class="top-center">
     <div class="scoreTop"><span id="scoreTop">0</span><span class="outOf">100</span></div>
     <div class="streak"><span id="streakNum">0</span> 🔥</div>
   </div>
-  <div id="dateTop" class="dateTop"></div>
-  <input id="datePicker" type="date" style="position:absolute;right:10px;top:46px;display:none"/>
-</header>
 
+  <div id="dateTop" class="dateTop">—</div>
+</header>
+  
+
+  
 <div id="loginOverlay">
   <div class="loginCard">
     <div style="font-size:40px">🌿🔐</div>
