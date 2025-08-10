@@ -1,37 +1,139 @@
-<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>Vida+ (v5.1.6)</title><meta name="theme-color" content="#0e0f12"/>
-<link rel="manifest" href="manifest.webmanifest?v=516"/>
-<style>:root{--pad:14px;--radius:14px;--font:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,"Apple Color Emoji","Segoe UI Emoji"}
-*{box-sizing:border-box}html,body{overflow-x:hidden}body{font-family:var(--font);margin:0;background:#0e0f12;color:#f2f2f2;line-height:1.35}
-header{position:sticky;top:0;z-index:1000;background:#0e0f12cc;backdrop-filter:blur(6px);border-bottom:1px solid #2a2d33;padding:10px var(--pad);
-display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:10px}
-h1{margin:0;font-size:22px}.centerWrap{display:flex;align-items:center;justify-content:center;gap:10px;min-width:160px}
-.score{font-weight:800;font-variant-numeric:tabular-nums;font-size:18px}.outOf{font-size:12px;opacity:.5}
-.streak{font-size:12px;border:1px solid #3a3f47;border-radius:999px;padding:4px 8px;display:flex;align-items:center;gap:6px}
-.dateTop{justify-self:end;opacity:.9;font-size:14px;cursor:pointer}#datePicker{position:absolute;right:10px;top:40px;display:none}
-main{display:grid;gap:18px;max-width:860px;margin:0 auto;padding:var(--pad)}
-section{background:#15171c;border:1px solid #2a2d33;border-radius:14px;padding:12px}
-.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}.btn{background:#1f6feb;border:0;border-radius:12px;color:#fff;padding:12px 14px;font-weight:600;cursor:pointer}
-.btn.secondary{background:#242832;border:1px solid #3a3f47}.small{font-size:12px;opacity:.75}.muted{opacity:.7}
-#loginWrap{max-width:480px;margin:40px auto;text-align:center}#loginWrap input{width:260px;background:#0f1115;border:1px solid #2a2d33;border-radius:10px;color:#f2f2f2;padding:10px}</style>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script>window.SUPABASE_URL='https://ftqjhcgzlnfuqlktltgw.supabase.co';window.SUPABASE_ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ0cWpoY2d6bG5mdXFsa3RsdGd3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQ3NDk3ODUsImV4cCI6MjA3MDMyNTc4NX0.HwuDNMTCa2erpLsnjRnfwpHCtqBLmBRqMW2lmaASxDM';</script></head>
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Vida+ (v5.1.4)</title>
+  <meta name="theme-color" content="#0e0f12" />
+  <link rel="manifest" href="manifest.webmanifest?v=514" />
+  <style>
+    :root{ --pad:14px; --radius:14px; --font:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,"Apple Color Emoji","Segoe UI Emoji"; }
+    *{box-sizing:border-box}
+    html,body{ overflow-x:hidden }
+    body{ font-family:var(--font); margin:0; background:#0e0f12; color:#f2f2f2; line-height:1.35; }
+    header{ padding:10px var(--pad); position:sticky; top:0; z-index:1000; background:#0e0f12cc; backdrop-filter: blur(6px); border-bottom:1px solid #2a2d33;
+            display:grid; grid-template-columns:auto 1fr auto; align-items:center; gap:10px; }
+    h1{margin:0;font-size:22px;}
+    .centerWrap{ display:flex; align-items:center; justify-content:center; gap:10px; min-width:160px }
+    .score{ font-weight:800; font-variant-numeric:tabular-nums; font-size:18px }
+    .outOf{ font-size:12px; opacity:.5 }
+    .streak{ font-size:12px; border:1px solid #3a3f47; border-radius:999px; padding:4px 8px; display:flex; align-items:center; gap:6px }
+    .dateTop{justify-self:end; opacity:.9;font-size:14px; cursor:pointer}
+    main{ display:grid; gap:18px; max-width:860px; margin:0 auto;
+          padding-left:max(var(--pad), env(safe-area-inset-left));
+          padding-right:max(var(--pad), env(safe-area-inset-right));
+          padding-top:var(--pad); padding-bottom:140px; }
+    section{ background:#15171c;border:1px solid #2a2d33;border-radius:var(--radius); padding:12px }
+    section h2{margin:0 0 8px 0; font-size:16px; display:flex; align-items:center; gap:10px}
+    .secPts{ font-size:12px; opacity:.85; padding:2px 8px; border:1px solid #3a3f47; border-radius:999px; }
+    .grid{display:grid; gap:10px}
+    .g2{grid-template-columns:1fr 1fr}
+    .row{display:flex; gap:10px; align-items:center; flex-wrap:wrap}
+    .col{display:grid; gap:10px}
+    .chip{ border:1px solid #3a2f47;padding:8px 10px;border-radius:12px; cursor:pointer; user-select:none; background:#15171c; color:#f2f2f2;}
+    .chip[aria-pressed="true"]{background:#2a2f37; border-color:#7aa7ff}
+    input[type=number], input[type=text], input[type=email], input[type=password], input[type=date]{ background:#0f1115;border:1px solid #2a2d33;border-radius:10px;color:#f2f2f2;padding:10px; }
+    .small{font-size:12px; opacity:.75}
+    .smallish{font-size:13px}
+    .right{margin-left:auto}
+    .muted{opacity:.7}
+    .stars{ display:flex; gap:8px; }
+    .star{ width:28px; height:28px; display:flex; align-items:center; justify-content:center; cursor:pointer; }
+    .star span{ color:#3a3a3a; } .star.active span{ color:#FFD24D; }
+    #sleepHours{ padding:8px 10px; font-size:15px; max-width:140px }
+    progress{ width:100%; height:8px; }
+    .bevGrid{ display:grid; grid-template-columns:90px 64px 64px minmax(0,1fr) 40px; gap:14px; align-items:center }
+    .bevGrid .chip{ text-align:center; }
+    .numRight{ text-align:right; font-variant-numeric:tabular-nums }
+    .ok{color:#58d68d} .warn{color:#f4d03f} .bad{color:#ff6b6b}
+    footer.note{ font-size:12px; opacity:.6; margin-top:6px }
+    .histHead{ display:grid; grid-template-columns:70px 50px minmax(0,1fr) 90px; gap:8px; padding:0 8px 4px 8px; align-items:end; }
+    .histColLabel{ font-size:10.5px; opacity:.0 }
+    .histAvg{ font-size:11.5px; opacity:.9 }
+    .histRow{ display:grid; grid-template-columns:70px 50px minmax(0,1fr) 90px; align-items:center; gap:8px; padding:7px 8px; border:1px dashed #3a3f47; border-radius:12px; white-space:nowrap; }
+    .histIcons{ display:flex; gap:8px; justify-content:center; align-items:center; min-width:0 }
+    .btn{ background:#1f6feb;border:0;border-radius:12px;color:white;padding:12px 14px; font-weight:600; cursor:pointer; width:100%; }
+    .btn.secondary{background:#242832; border:1px solid #3a3f47}
+    #datePicker{ position:absolute; right:10px; top:40px; background:#15171c; border:1px solid #2a2d33; padding:8px; border-radius:10px; display:none }
+    details.config > summary{ cursor:pointer; list-style:none; }
+    details.config > summary::-webkit-details-marker{ display:none; }
+    details.config summary .tag{ font-size:11px; opacity:.7; border:1px solid #3a3f47; padding:2px 8px; border-radius:999px; margin-left:6px }
+    .cfgGrid{ display:grid; grid-template-columns:1fr 1fr; gap:10px }
+    #loginWrap{ display:none; max-width:480px; margin:40px auto; text-align:center; }
+    #loginWrap .title{ font-size:20px; margin-bottom:6px; }
+    #loginWrap .illus{ font-size:40px; opacity:.9; margin:10px 0 12px }
+    #loginWrap .help{ font-size:13px; opacity:.8; margin-bottom:12px }
+    #chartSec{ margin-top:10px; margin-bottom:18px }
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>
+    window.SUPABASE_URL = "https://ftqjhcgzlnfuqlktltgw.supabase.co";
+    window.SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ0cWpoY2d6bG5mdXFsa3RsdGd3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQ3NDk3ODUsImV4cCI6MjA3MDMyNTc4NX0.HwuDNMTCa2erpLsnjRnfwpHCtqBLmBRqMW2lmaASxDM";
+  </script>
+</head>
 <body>
-<header><h1>Vida+</h1>
-<div class="centerWrap"><div class="score"><span id="scoreTop">—</span><span class="outOf">/100</span></div><div class="streak"><span id="streakNum">0</span> 🔥</div></div>
-<div id="dateTop" class="dateTop"></div><input id="datePicker" type="date"/></header>
-<div id="loginWrap" style="display:none"><div class="row" style="justify-content:center; margin-bottom:8px"><div class="small muted">v5.1.6</div></div>
-<div style="font-size:40px;margin:6px 0">🌿🔐</div><div style="font-size:20px;margin:0 0 6px">Entre para continuar</div>
-<div class="small muted" style="margin-bottom:8px">Crie conta se ainda não tem.</div>
-<div class="row" style="justify-content:center"><input id="loginEmail" type="email" placeholder="seu@email"/>
-<input id="loginPass" type="password" placeholder="senha"/></div>
-<div class="row" style="justify-content:center;margin-top:8px"><button id="btnSignIn" class="btn">Entrar</button>
-<button id="btnSignUp" class="btn secondary">Criar conta</button><button id="btnReset" class="btn secondary">Esqueci a senha</button></div>
-<div id="loginMsg" class="small" style="margin-top:8px"></div></div>
-<main id="content" style="display:none"><section><h2>🧪 Ações rápidas</h2>
-<div class="row"><button id="btnDiag" class="btn secondary">Diagnóstico Supabase</button>
-<button id="btnExport" class="btn secondary">Exportar CSV</button><button id="btnSignOut" class="btn secondary">Sair</button></div>
-<div id="diagLog" class="small muted" style="margin-top:8px;white-space:pre-wrap"></div></section>
-<section><h2>⚙️ Configurações (demo)</h2><div class="row small muted">Base estável com login/diag/csv/sair.</div></section></main>
-<script src="app.js?v=516-20250810031429" defer></script></body></html>
+  <header id="hdr">
+    <h1>Vida+</h1>
+    <div class="centerWrap" id="hdrCenter">
+      <div class="score"><span id="scoreTop">—</span><span class="outOf">/100</span></div>
+      <div class="streak"><span id="streakNum">0</span> 🔥</div>
+    </div>
+    <div id="dateTop" class="dateTop" title="Toque para alterar o dia"></div>
+    <input id="datePicker" type="date" />
+  </header>
+
+  <div id="loginWrap">
+    <div class="illus">🌿🔐</div>
+    <div class="title">Entre para continuar</div>
+    <div class="help">Use seu e-mail e senha. Se ainda não tem conta, crie agora.</div>
+    <div class="col" style="align-items:center">
+      <input id="loginEmail" type="email" placeholder="seu@email" style="width:260px" />
+      <input id="loginPass" type="password" placeholder="senha" style="width:260px" />
+      <div class="row" style="justify-content:center">
+        <button id="btnSignIn" class="chip">Entrar</button>
+        <button id="btnSignUp" class="chip">Criar conta</button>
+        <button id="btnReset" class="chip">Esqueci a senha</button>
+      </div>
+      <div class="small" id="loginMsg" style="margin-top:8px; opacity:.8"></div>
+    </div>
+  </div>
+
+  <main></main>
+
+  <section id="chartSec" style="display:none; max-width:860px; margin: 0 auto; padding:0 14px">
+    <h2>📈 Evolução</h2>
+    <canvas id="chartCanvas" height="220"></canvas>
+  </section>
+
+  <section class="config" style="max-width:860px; margin: 0 auto var(--pad) auto;">
+    <details class="config" open>
+      <summary><h2>⚙️ Configurações <span class="tag">v5.1.4</span></h2></summary>
+      <div id="authStatus" class="small muted" style="margin:4px 0 10px 0">Status: —</div>
+      <div class="cfgGrid">
+        <div><div class="small muted">Meta de sono (h)</div><input id="cfgSleep" type="number" step="0.5" placeholder="7" /></div>
+        <div><div class="small muted">Meta de água (ml)</div><input id="cfgWater" type="number" placeholder="2500" /></div>
+        <div><div class="small muted">Copo padrão (ml)</div><input id="cfgCup" type="number" placeholder="250" /></div>
+        <div><div class="small muted">Meta de peso (kg)</div><input id="cfgTarget" type="number" step="0.1" placeholder="81" /></div>
+        <div><div class="small muted">Meta caminhada (min)</div><input id="cfgWalk" type="number" placeholder="30" /></div>
+        <div><div class="small muted">Limite café (xícaras)</div><input id="cfgCoffee" type="number" placeholder="3" /></div>
+        <div><div class="small muted">Limite álcool (taças)</div><input id="cfgAlcohol" type="number" placeholder="1" /></div>
+        <div><div class="small muted">Início da campanha</div><input id="cfgStart" type="date" /></div>
+        <div><div class="small muted">Fim da campanha</div><input id="cfgEnd" type="date" /></div>
+      </div>
+      <div class="row" style="margin-top:10px">
+        <button id="cfgSave" class="btn">Salvar configurações</button>
+        <button id="cfgReset" class="btn secondary">Padrões</button>
+        <button id="btnExport" class="btn secondary">Exportar CSV</button>
+      </div>
+      <div class="row" style="margin-top:10px">
+        <button id="btnDiag" class="btn secondary">Diagnóstico Supabase</button>
+        <button id="btnSignOut" class="btn secondary">Sair</button>
+        <button id="btnNuke" class="btn bad">Apagar tudo</button>
+      </div>
+      <div class="small muted" id="cfgMsg"></div>
+    </details>
+  </section>
+
+  <script src="app.js?v=514" defer></script>
+</body>
+</html>
