@@ -64,6 +64,39 @@ header .dateTop{
   border:0; background:transparent;
   z-index:1;                 /* acima do header pra Safari não bloquear */
 }
+
+/* Limitar o topo à mesma largura das seções (ajuste o valor se precisar) */
+:root{ --pageW: 860px; }   /* use o mesmo max-width das suas <section> */
+header{
+  position: sticky; top: 0; z-index: 1000;
+  backdrop-filter: blur(8px);
+  background: rgba(14,15,18,.85);
+  max-width: var(--pageW);
+  margin: 0 auto;
+  display: grid; grid-template-columns: auto 1fr auto;
+  align-items: center; gap: 12px;
+  padding: 10px var(--pad,14px);
+}
+
+/* centro (nota + streak) continua igual */
+header .top-center{ justify-self: center; display: flex; gap: 12px; align-items: center; }
+
+/* chip de data: 1 linha, sem borda, menor e sem cortar */
+header .dateTop{
+  border: none; background: transparent;
+  font-size: 12px; line-height: 1; padding: 2px 6px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  justify-self: end;
+}
+
+/* input date invisível porém focável (iOS/Android) — NÃO usar display:none */
+#datePicker{
+  position:absolute; right:10px; top:46px; width:1px; height:1px;
+  opacity:0.01; border:0; background:transparent; z-index:1;
+}
+
+/* insere visualmente o espaço do “ / 100 ” sem trocar tipografia */
+.scoreTop .outOf::before{ content:" / "; opacity:.75; margin:0 2px; }
   
 </style>
 
