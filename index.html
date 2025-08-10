@@ -1,37 +1,188 @@
-<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>Vida+ (v5.1.6)</title><meta name="theme-color" content="#0e0f12"/>
-<link rel="manifest" href="manifest.webmanifest?v=516"/>
-<style>:root{--pad:14px;--radius:14px;--font:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,"Apple Color Emoji","Segoe UI Emoji"}
-*{box-sizing:border-box}html,body{overflow-x:hidden}body{font-family:var(--font);margin:0;background:#0e0f12;color:#f2f2f2;line-height:1.35}
-header{position:sticky;top:0;z-index:1000;background:#0e0f12cc;backdrop-filter:blur(6px);border-bottom:1px solid #2a2d33;padding:10px var(--pad);
+<!DOCTYPE html>
+<html lang="pt-BR"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Vida+ (v5.2.0)</title><meta name="theme-color" content="#0e0f12"/>
+<link rel="manifest" href="manifest.webmanifest?v=520"/>
+<style>
+:root{--pad:14px;--radius:14px;--font:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,"Apple Color Emoji","Segoe UI Emoji";
+--card:#15171c;--line:#2a2d33;--fg:#f2f2f2;--muted:#a5adba;--accent:#1f6feb;--good:#9be9a8;--warn:#ffd866;--bad:#ff6b6b;}
+*{box-sizing:border-box} html,body{overflow-x:hidden} body{margin:0;background:#0e0f12;color:var(--fg);font-family:var(--font);line-height:1.35}
+header{position:sticky;top:0;z-index:1000;background:#0e0f12cc;backdrop-filter:blur(6px);border-bottom:1px solid var(--line);padding:10px var(--pad);
 display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:10px}
-h1{margin:0;font-size:22px}.centerWrap{display:flex;align-items:center;justify-content:center;gap:10px;min-width:160px}
-.score{font-weight:800;font-variant-numeric:tabular-nums;font-size:18px}.outOf{font-size:12px;opacity:.5}
+h1{margin:0;font-size:22px} .centerWrap{display:flex;align-items:center;justify-content:center;gap:10px;min-width:160px}
+.scoreTop{font-weight:800;font-variant-numeric:tabular-nums;font-size:18px} .outOf{font-size:12px;opacity:.5;margin-left:2px}
 .streak{font-size:12px;border:1px solid #3a3f47;border-radius:999px;padding:4px 8px;display:flex;align-items:center;gap:6px}
-.dateTop{justify-self:end;opacity:.9;font-size:14px;cursor:pointer}#datePicker{position:absolute;right:10px;top:40px;display:none}
+.dateTop{justify-self:end;opacity:.9;font-size:14px;cursor:pointer} #datePicker{position:absolute;right:10px;top:40px;display:none}
 main{display:grid;gap:18px;max-width:860px;margin:0 auto;padding:var(--pad)}
-section{background:#15171c;border:1px solid #2a2d33;border-radius:14px;padding:12px}
-.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}.btn{background:#1f6feb;border:0;border-radius:12px;color:#fff;padding:12px 14px;font-weight:600;cursor:pointer}
-.btn.secondary{background:#242832;border:1px solid #3a3f47}.small{font-size:12px;opacity:.75}.muted{opacity:.7}
-#loginWrap{max-width:480px;margin:40px auto;text-align:center}#loginWrap input{width:260px;background:#0f1115;border:1px solid #2a2d33;border-radius:10px;color:#f2f2f2;padding:10px}</style>
+section{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap} .col{display:flex;flex-direction:column;gap:8px}
+label.small{font-size:12px;opacity:.85} .muted{color:var(--muted)} .hint{font-size:12px;opacity:.75}
+input[type="text"],input[type="number"],input[type="email"],input[type="password"]{background:#0f1115;border:1px solid var(--line);border-radius:10px;color:var(--fg);padding:10px}
+input[type="date"]{background:#0f1115;border:1px solid var(--line);border-radius:10px;color:var(--fg);padding:8px}
+.btn{background:var(--accent);border:0;border-radius:12px;color:#fff;padding:10px 14px;font-weight:700;cursor:pointer}
+.btn.secondary{background:#242832;border:1px solid #3a3f47} .btn.ghost{background:transparent;border:1px solid var(--line)}
+.pill{background:#0f1115;border:1px solid var(--line);padding:10px 12px;border-radius:14px}
+.kv{display:flex;justify-content:space-between;gap:10px;align-items:center}
+.stars{display:flex;gap:6px;align-items:center} .star{font-size:20px;opacity:.35;cursor:pointer} .star.on{opacity:1;color:#ffd34d}
+.meal{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px dashed #2a2d33}
+.meal:last-child{border-bottom:0}
+.progress{height:8px;border-radius:6px;background:#0f1115;border:1px solid var(--line);overflow:hidden}
+.progress>div{height:100%;background:#4ea3ff;transition:width .2s}
+.right{margin-left:auto} .center{text-align:center}
+.histHead,.histRow{display:grid;grid-template-columns:80px 1fr 110px;gap:12px;align-items:center}
+.histHead{font-size:12px;opacity:.7;margin-bottom:6px} .histRow{padding:8px;border:1px dashed #2a2d33;border-radius:10px;margin-bottom:10px}
+.bad{color:var(--bad)} .warn{color:var(--warn)}
+canvas{width:100%;height:200px;background:#0f1115;border:1px solid var(--line);border-radius:10px}
+#loginWrap{max-width:480px;margin:40px auto;text-align:center} #loginWrap input{width:260px} .sep{height:12px}
+</style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script>window.SUPABASE_URL='https://ftqjhcgzlnfuqlktltgw.supabase.co';window.SUPABASE_ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ0cWpoY2d6bG5mdXFsa3RsdGd3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQ3NDk3ODUsImV4cCI6MjA3MDMyNTc4NX0.HwuDNMTCa2erpLsnjRnfwpHCtqBLmBRqMW2lmaASxDM';</script></head>
+<script>window.SUPABASE_URL="https://ftqjhcgzlnfuqlktltgw.supabase.co";window.SUPABASE_ANON_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ0cWpoY2d6bG5mdXFsa3RsdGd3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQ3NDk3ODUsImV4cCI6MjA3MDMyNTc4NX0.HwuDNMTCa2erpLsnjRnfwpHCtqBLmBRqMW2lmaASxDM";</script>
+</head>
 <body>
-<header><h1>Vida+</h1>
-<div class="centerWrap"><div class="score"><span id="scoreTop">—</span><span class="outOf">/100</span></div><div class="streak"><span id="streakNum">0</span> 🔥</div></div>
-<div id="dateTop" class="dateTop"></div><input id="datePicker" type="date"/></header>
-<div id="loginWrap" style="display:none"><div class="row" style="justify-content:center; margin-bottom:8px"><div class="small muted">v5.1.6</div></div>
-<div style="font-size:40px;margin:6px 0">🌿🔐</div><div style="font-size:20px;margin:0 0 6px">Entre para continuar</div>
-<div class="small muted" style="margin-bottom:8px">Crie conta se ainda não tem.</div>
-<div class="row" style="justify-content:center"><input id="loginEmail" type="email" placeholder="seu@email"/>
-<input id="loginPass" type="password" placeholder="senha"/></div>
-<div class="row" style="justify-content:center;margin-top:8px"><button id="btnSignIn" class="btn">Entrar</button>
-<button id="btnSignUp" class="btn secondary">Criar conta</button><button id="btnReset" class="btn secondary">Esqueci a senha</button></div>
-<div id="loginMsg" class="small" style="margin-top:8px"></div></div>
-<main id="content" style="display:none"><section><h2>🧪 Ações rápidas</h2>
-<div class="row"><button id="btnDiag" class="btn secondary">Diagnóstico Supabase</button>
-<button id="btnExport" class="btn secondary">Exportar CSV</button><button id="btnSignOut" class="btn secondary">Sair</button></div>
-<div id="diagLog" class="small muted" style="margin-top:8px;white-space:pre-wrap"></div></section>
-<section><h2>⚙️ Configurações (demo)</h2><div class="row small muted">Base estável com login/diag/csv/sair.</div></section></main>
-<script src="app.js?v=516-20250810031429" defer></script></body></html>
+<header>
+  <h1>Vida+</h1>
+  <div class="centerWrap">
+    <div class="scoreTop"><span id="scoreTop">—</span><span class="outOf">/100</span></div>
+    <div class="streak"><span id="streakNum">0</span> 🔥</div>
+  </div>
+  <div id="dateTop" class="dateTop"></div>
+  <input id="datePicker" type="date"/>
+</header>
+
+<div id="loginWrap" style="display:none">
+  <div class="row center"><div class="hint">v5.2.0</div></div>
+  <div style="font-size:40px;margin:6px 0">🌿🔐</div>
+  <div style="font-size:20px;margin:0 0 6px">Entre para continuar</div>
+  <div class="hint">Crie conta se ainda não tem.</div>
+  <div class="row center" style="justify-content:center">
+    <input id="loginEmail" type="email" placeholder="seu@email"/>
+    <input id="loginPass" type="password" placeholder="senha"/>
+  </div>
+  <div class="row center" style="justify-content:center">
+    <button id="btnSignIn" class="btn">Entrar</button>
+    <button id="btnSignUp" class="btn secondary">Criar conta</button>
+    <button id="btnReset" class="btn ghost">Esqueci a senha</button>
+  </div>
+  <div id="loginMsg" class="hint" style="margin-top:8px"></div>
+</div>
+
+<main id="content" style="display:none">
+  <section>
+    <div class="kv"><div>⚖️ <strong>Peso</strong></div><div class="hint" id="pesoYesterday">Ontem: —</div></div>
+    <div class="row">
+      <input id="pesoHoje" type="number" step="0.01" placeholder="ex: 88.2" style="width:140px"/>
+      <div class="pill">kg</div>
+      <button id="btnPesoOk" class="btn">OK</button>
+      <div class="hint" id="pesoMeta" style="margin-left:auto">Meta: —</div>
+    </div>
+    <div class="hint" id="pesoDiff"></div>
+  </section>
+
+  <section>
+    <div class="kv"><div>😴 <strong>Sono <span class="hint" id="scoreSono">0/25</span></strong></div></div>
+    <div class="row">
+      <div class="col">
+        <label class="small">Horas dormidas</label>
+        <input id="sleepHours" type="number" step="0.1" placeholder="ex: 6.5" style="width:120px"/>
+        <div id="sleepMetaHint" class="hint">Meta: —</div>
+      </div>
+      <div class="col right">
+        <label class="small">Qualidade</label>
+        <div class="stars" id="sleepStars"><span class="star">★</span><span class="star">★</span><span class="star">★</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="kv"><div>🍽️ <strong>Alimentação <span class="hint" id="scoreFood">0/45</span></strong></div></div>
+    <div id="meals"></div>
+    <div class="hint">Toque no nome para limpar.</div>
+  </section>
+
+  <section>
+    <div class="kv"><div>🏃 <strong>Exercício <span class="hint" id="scoreEx">0/15</span></strong></div></div>
+    <div class="row">
+      <button class="pill" data-treino="A">Treino A</button>
+      <button class="pill" data-treino="B">Treino B</button>
+      <button class="pill" data-treino="C">Treino C</button>
+    </div>
+    <div class="row" style="margin-top:6px">
+      <label class="small">Caminhada (min)</label>
+      <input id="walkMin" type="number" step="1" placeholder="ex: 30" style="width:120px"/>
+    </div>
+  </section>
+
+  <section>
+    <div class="kv"><div>🧠 <strong>Mente <span class="hint" id="scoreMind">0/5</span></strong></div></div>
+    <div class="row">
+      <button class="pill mind" data-mind="read">Ler</button>
+      <button class="pill mind" data-mind="book">Livro</button>
+      <button class="pill mind" data-mind="meditate">Meditar</button>
+    </div>
+  </section>
+
+  <section>
+    <div class="kv"><div>💧 <strong>Hidratação <span class="hint" id="scoreWater">0/10</span></strong></div><div class="hint right"><span id="waterPct">0%</span></div></div>
+    <div class="row">
+      <button id="btnWaterPlus" class="pill">+ 250 ml</button>
+      <button id="btnWaterMinus" class="pill">- 1 copo</button>
+    </div>
+    <div class="progress" style="margin-top:8px"><div id="waterBar" style="width:0%"></div></div>
+    <div class="kv" style="margin-top:4px"><div class="hint"> </div><div class="hint" id="waterTotal">0 / 2500 ml</div></div>
+  </section>
+
+  <section>
+    <div><strong>🥤 Bebidas</strong></div>
+    <div class="row" style="justify-content:space-between">
+      <div class="row"><span>☕ Café</span>
+        <button id="coffeeMinus" class="pill">-1</button>
+        <button id="coffeePlus" class="pill">+1</button>
+      </div>
+      <div id="coffeeIcons" class="hint"></div>
+    </div>
+    <div class="row" style="justify-content:space-between">
+      <div class="row"><span>🍷 Álcool</span>
+        <button id="alcoholMinus" class="pill">-1</button>
+        <button id="alcoholPlus" class="pill">+1</button>
+      </div>
+      <div id="alcoholIcons" class="hint"></div>
+    </div>
+    <div class="hint">Não afetam a nota. Limites em configurações.</div>
+  </section>
+
+  <section>
+    <div>📘 <strong>Histórico</strong></div>
+    <div id="histWrap">
+      <div class="histHead"><div>Data</div><div></div><div class="right">Peso</div></div>
+      <div id="histList"></div>
+    </div>
+  </section>
+
+  <section>
+    <div>📈 <strong>Evolução</strong></div>
+    <canvas id="chart" width="800" height="200"></canvas>
+  </section>
+
+  <section>
+    <div class="kv"><div>⚙️ <strong>Configurações</strong> <span class="hint">v5.2.0</span></div><div class="right hint" id="loginStatus"></div></div>
+    <div class="row">
+      <div class="col" style="min-width:180px"><label class="small">Meta de sono (h)</label><input id="cfgSleep" type="number" step="0.1" value="7"/></div>
+      <div class="col" style="min-width:180px"><label class="small">Meta de água (ml)</label><input id="cfgWater" type="number" step="50" value="2500"/></div>
+    </div>
+    <div class="row">
+      <div class="col" style="min-width:180px"><label class="small">Peso alvo (kg)</label><input id="cfgGoal" type="number" step="0.1" value="81"/></div>
+      <div class="col" style="min-width:180px"><label class="small">Copo padrão (ml)</label><input id="cfgCup" type="number" step="50" value="250"/></div>
+    </div>
+    <div class="row">
+      <div class="col" style="min-width:180px"><label class="small">Início campanha</label><input id="cfgStart" type="date"/></div>
+      <div class="col" style="min-width:180px"><label class="small">Fim campanha</label><input id="cfgEnd" type="date"/></div>
+    </div>
+    <div class="row">
+      <button id="btnSaveCfg" class="btn">Salvar config</button>
+      <button id="btnExport" class="btn secondary">Exportar CSV</button>
+      <button id="btnSignOut" class="btn ghost right">Sair</button>
+    </div>
+  </section>
+</main>
+
+<script src="app.js?v=52020250810032823" defer></script>
+</body></html>
