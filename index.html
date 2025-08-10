@@ -33,6 +33,19 @@ input[type="number"],input[type='text'],input[type='date'],input[type='email'],i
 .loginCard{max-width:420px;width:100%;background:#11131a;border:1px solid var(--line);border-radius:16px;padding:20px;text-align:center}
 .ver{opacity:.6;font-size:12px;margin-top:4px}
 canvas{width:100%;height:200px;background:#0f1115;border:1px solid var(--line);border-radius:10px}
+
+/* ——— Topo flutuante sem alterar tipografia ——— */
+header{ position:sticky; top:0; z-index:1000; backdrop-filter:blur(8px); background:rgba(14,15,18,.85); }
+
+/* Mantém o grid do seu header • ajusta centralização da nota e data à direita */
+header{ display:grid; grid-template-columns:auto 1fr auto; align-items:center; gap:12px; }
+header h1{ margin:0; }
+header .top-center{ justify-self:center; display:flex; gap:12px; align-items:center; }
+header .dateTop{ justify-self:end; padding:6px 10px; border:1px solid var(--line,rgba(255,255,255,.15)); border-radius:10px; cursor:pointer; user-select:none; }
+
+/* Insere visualmente o “ / ” antes do 100, sem trocar sua fonte */
+.scoreTop .outOf::before{ content:" / "; opacity:.75; margin:0 2px; }
+  
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>window.SUPABASE_URL="https://ftqjhcgzlnfuqlktltgw.supabase.co";window.SUPABASE_ANON="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ0cWpoY2d6bG5mdXFsa3RsdGd3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQ3NDk3ODUsImV4cCI6MjA3MDMyNTc4NX0.HwuDNMTCa2erpLsnjRnfwpHCtqBLmBRqMW2lmaASxDM";</script>
