@@ -34,6 +34,51 @@ input[type="number"],input[type='text'],input[type='date'],input[type='email'],i
 .loginCard{max-width:420px;width:100%;background:#11131a;border:1px solid var(--line);border-radius:16px;padding:20px;text-align:center}
 .ver{opacity:.6;font-size:12px;margin-top:4px}
 canvas{width:100%;height:200px;background:#0f1115;border:1px solid var(--line);border-radius:10px}
+
+/* ——— TOPO (ajustes visuais) ——— */
+
+/* 1) Nota: mesmo tamanho do "Vida+" */
+h1{ font-size:22px }                 /* já está assim */
+.scoreTop{ font-size:22px; font-weight:800; font-variant-numeric:tabular-nums; }
+
+/* 2) “/ 100”: menor e cinza discreto, com espaço antes */
+.scoreTop .outOf{
+  font-size:12px;
+  color: var(--muted,#9aa4b2);
+  opacity:.9;
+}
+.scoreTop .outOf::before{
+  content:" / ";
+  color: var(--muted,#9aa4b2);
+  opacity:.9;
+  margin:0 4px 0 2px;   /* garante espaço visível antes do 100 */
+}
+
+/* 3) Sequência (🔥) com borda em volta do número + ícone (estilo “pill”) */
+.streak{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  padding:4px 10px;
+  border:1px solid var(--line,#2a2d33);
+  border-radius:999px;
+  background:rgba(255,255,255,0.03);
+  font-weight:600;
+}
+
+/* 4) Topo realmente flutuante (reforços) */
+header#hdr{
+  position: -webkit-sticky; /* iOS/Safari */
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+}
+
+/* 5) Evitar que algum contêiner quebre o sticky */
+html, body { overflow-x: hidden; }     /* ok manter */
+main{ overflow: visible; }             /* importante p/ sticky funcionar */
+
+  
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>window.SUPABASE_URL="https://ftqjhcgzlnfuqlktltgw.supabase.co";window.SUPABASE_ANON="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ0cWpoY2d6bG5mdXFsa3RsdGd3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQ3NDk3ODUsImV4cCI6MjA3MDMyNTc4NX0.HwuDNMTCa2erpLsnjRnfwpHCtqBLmBRqMW2lmaASxDM";</script>
