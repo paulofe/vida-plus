@@ -1,17 +1,25 @@
-// Vida+ v6.0.0 — versão consolidada
+// Vida+ v6.0.1 — igual à 6.0.0 com correção do topo (sem datepicker; data do Supabase)
 const supabase = window.supabase.createClient(window.SUPABASE_URL, window.SUPABASE_ANON);
 const $ = (q)=>document.querySelector(q), $$=(q)=>document.querySelectorAll(q);
 const months=['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'], wd=['dom','seg','ter','qua','qui','sex','sáb'];
-const fmtDate = (d)=>{ const z=new Date(d), y=z.getFullYear(), m=('0'+(z.getMonth()+1)).slice(-2), dd=('0'+z.getDate()).slice(-2); return `${y}-${m}-${dd}`; };
-const dispDate = (dstr)=>{ const d=new Date(dstr); return ('0'+d.getDate()).slice(-2)+'/'+months[d.getMonth()]+' ('+wd[d.getDay()]+')'; };
- 
+const fmtDateStr = (d)=>{ const z=new Date(d), y=z.getFullYear(), m=('0'+(z.getMonth()+1)).slice(-2), dd=('0'+z.getDate()).slice(-2); return `${y}-${m}-${dd}`; };
+
+// Formatador para label do topo (usa string YYYY-MM-DD; cria Date apenas para weekday, em meio-dia local)
+function fmtDateLabel(ymd){
+  if(typeof ymd!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(ymd)) return '—';
+  const [y,m,d]=ymd.split('-').map(Number);
+  const dt = new Date(y, m-1, d, 12, 0, 0, 0);
+  return String(d).padStart(2,'0')+'/'+months[m-1]+' ('+wd[dt.getDay()]+')';
+}
+
 let USER=null, SESSION=null;
 let CFG={ sleep:7, water:2500, goal:81, cup:250, start:null, end:null, coffeeLimit:3, alcoholLimit:1 };
 let DAY=defaultDay();
 let ALL_ROWS=[]; // cache para histórico/gráfico
+let currentYmd = DAY.date; // manter YMD atual como string
 
 function defaultDay(){
-  return { date: fmtDate(new Date()), weight:null,
+  return { date: fmtDateStr(new Date()), weight:null,
     sleep:{hours:null,quality:0},
     meals:{bfast:0,snack1:0,lunch:0,snack2:0,dinner:0},
     exercise:{treino:null,walk:0},
@@ -22,10 +30,9 @@ function defaultDay(){
 
 // ===== Top =====
 function renderTop(){
-  $('#dateTop').textContent = dispDate(DAY.date);
-  $('#datePicker').value = DAY.date;
   $('#scoreTop').textContent = DAY.score||0;
   $('#streakNum').textContent = computeStreak(ALL_ROWS);
+  $('#dateTop').textContent = fmtDateLabel(currentYmd); // só formata a string
 }
 
 // ===== Meals UI =====
@@ -41,7 +48,6 @@ function renderMeals(){
     row.appendChild(name); row.appendChild(stars); wrap.appendChild(row);
   }
 }
-
 function setStars(container, val){ container.querySelectorAll('.star').forEach((e,i)=>e.classList.toggle('on', i<val)); }
 
 // ===== Score =====
@@ -53,11 +59,11 @@ function scoreAll(){
   let sWat=Math.round(10*Math.min((DAY.water||0)/CFG.water,1)); $('#scoreWater').textContent=sWat+'/10';
   let sMind=(DAY.mind.read||DAY.mind.book||DAY.mind.meditate)?5:0; $('#scoreMind').textContent=sMind+'/5';
   DAY.score = sSono+sFood+sEx+sWat+sMind;
-  $('#scoreTop').textContent = DAY.score;
 }
 
 // ===== Paint =====
 function paint(){
+  // topo
   renderTop();
   // peso
   $('#pesoMeta').textContent='Meta: '+(CFG.goal?CFG.goal+' kg':'—');
@@ -70,22 +76,17 @@ function paint(){
   $$('#meals .meal').forEach((row,idx)=> setStars(row.querySelector('.stars'), DAY.meals[keys[idx]]||0));
   // hidratação
   const pct=Math.min(100,Math.round(((DAY.water||0)/(CFG.water||2500))*100)); $('#waterPct').textContent=pct+'%'; $('#waterBar').style.width=pct+'%'; $('#waterTotal').textContent=(DAY.water||0)+' / '+CFG.water+' ml';
-  // bebidas (mostra barra de ícones — repetido ou xN se muito)
+  // bebidas
   const iconRepeat = (icon, n)=>{ if(n<=0) return ''; if(n<=8) return icon.repeat(n); return icon+' x'+n; };
   $('#coffeeIcons').textContent = iconRepeat('☕', DAY.drinks.coffee||0);
   $('#alcoholIcons').textContent = iconRepeat('🍷', DAY.drinks.alcohol||0);
   // treino visual + ontem ref
   $$('button[data-treino]').forEach(b=>b.classList.toggle('active', DAY.exercise.treino===b.dataset.treino));
   $('#treinoOntem').textContent = getYesterdayTreino();
-  // score final
-  scoreAll();
 }
 
 // ===== Eventos =====
 function attachEvents(){
-  // Header date
-  $('#dateTop').addEventListener('click', ()=>$('#datePicker').showPicker?.());
-  $('#datePicker').addEventListener('change', async e=>{ DAY.date=e.target.value; await ensureDayLoaded(); update(); });
   // Peso
   $('#btnPesoOk').addEventListener('click', async()=>{ const v=parseFloat($('#pesoHoje').value); if(!isNaN(v)){ DAY.weight=v; localStorage.setItem('lastWeight',String(v)); await saveDay(); update(); }});
   // Sono
@@ -129,6 +130,7 @@ function readCfgFromUI(){
 // ===== Supabase =====
 async function saveDay(){
   if(!USER) return;
+  // DAY.date deve ser SEMPRE string 'YYYY-MM-DD' (não mexer)
   const payload={ user_id: USER.id, date: DAY.date, data: DAY };
   const { error } = await supabase.from('days').upsert(payload, { onConflict: 'user_id,date' });
   if(error) console.error('save error', error);
@@ -140,12 +142,15 @@ async function saveDay(){
 
 async function ensureDayLoaded(){
   if(!USER) return;
-  const { data } = await supabase.from('days').select('data').eq('user_id',USER.id).eq('date',DAY.date).maybeSingle();
-  DAY = data?.data || { ...defaultDay(), date: DAY.date };
+  // busca EXATAMENTE essa chave (string)
+  const { data } = await supabase.from('days').select('date,data').eq('user_id',USER.id).eq('date',currentYmd).maybeSingle();
+  if(data?.data){ DAY = data.data; DAY.date = data.date; }
+  else { DAY = { ...defaultDay(), date: currentYmd }; }
   // preencher inputs
   $('#pesoHoje').value = (DAY.weight!=null)?DAY.weight:'';
   $('#sleepHours').value = (DAY.sleep.hours!=null)?DAY.sleep.hours:'';
   $('#walkMin').value = (DAY.exercise.walk||0);
+  renderTop(); // reflete a data exata carregada
 }
 
 async function loadAllDays(){
@@ -171,7 +176,7 @@ function computeStreak(rowsDesc){
     const w0 = rows[i].data?.weight;
     const w1 = rows[i+1].data?.weight;
     if(w0==null || w1==null){ break; }
-    if(w0 < w1) streak++; else break;
+    if(Number(w0) < Number(w1)) streak++; else break;
   }
   return streak;
 }
@@ -233,7 +238,12 @@ function renderChart(rowsDesc){
   if(vals.length>=2){
     const minW=Math.min(...vals), maxW=Math.max(...vals);
     ctx.strokeStyle='#9be9a8'; ctx.lineWidth=2; ctx.beginPath();
-    weights.forEach((v,i)=>{ if(v==null) return; const x=pad+i*((w-2*pad)/n)+bw/2, y=h-pad-((v-minW)/(maxW-minW+1e-6))*(h-2*pad); if(ctx.currentPathEmpty) ctx.moveTo(x,y); else ctx.lineTo(x,y); });
+    let started=false
+    for (let i=0;i<weights.length;i++){
+      const v=weights[i]; if(v==null) continue;
+      const x=pad+i*((w-2*pad)/n)+bw/2, y=h-pad-((v-minW)/(maxW-minW+1e-6))*(h-2*pad);
+      if(!started){ ctx.moveTo(x,y); started=true; } else { ctx.lineTo(x,y); }
+    }
     ctx.stroke();
   }
 
@@ -244,43 +254,24 @@ function renderChart(rowsDesc){
     if(startRow && startRow.data?.weight!=null){
       const startIdx = rows.indexOf(startRow);
       const startW = startRow.data.weight;
-      const endIdx = rows.findLastIndex ? rows.findLastIndex(r=>r.date<=CFG.end) : (function(){let idx=-1; for(let i=rows.length-1;i>=0;i--){ if(rows[i].date<=CFG.end){ idx=i; break; } } return idx;})();
+      let endIdx = -1; for(let i=rows.length-1;i>=0;i--){ if(rows[i].date<=CFG.end){ endIdx=i; break; } }
       if(endIdx>=0){
         const steps = endIdx-startIdx;
         if(steps>0){
-          const minW=Math.min(...vals, CFG.goal, startW), maxW=Math.max(...vals, CFG.goal, startW);
-          ctx.save(); ctx.setLineDash([5,4]); ctx.strokeStyle='#cccccc'; ctx.lineWidth=1.5; ctx.beginPath();
-          for(let i=0;i<=steps;i++){
-            const wTarget = startW + (CFG.goal-startW)*(i/steps);
-            const x=pad+(startIdx+i)*((w-2*pad)/n)+bw/2;
-            const y=h-pad-((wTarget-minW)/(maxW-minW+1e-6))*(h-2*pad);
-            if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
-          }
-          ctx.stroke(); ctx.restore();
+          const allVals = weights.filter(v=>v!=null).concat([CFG.goal, startW]);
+          const minW=Math.min(...allVals), maxW=Math.max(...allVals);
+ctx.save(); ctx.setLineDash([5,4]); ctx.strokeStyle='#cccccc'; ctx.lineWidth=1.5; ctx.beginPath();
+for(let i=0;i<=steps;i++){
+  const wTarget = startW + (CFG.goal-startW)*(i/steps);
+  const x=pad+(startIdx+i)*((w-2*pad)/n)+bw/2;
+  const y=h-pad-((wTarget-minW)/(maxW-minW+1e-6))*(h-2*pad);
+  if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+}
+ctx.stroke(); ctx.restore();
         }
       }
     }
   }
-}
-
-// ===== Export =====
-function downloadCSV(rows){
-  if(!rows||!rows.length){ alert('Sem dados.'); return; }
-  const header=['user_id','date','score','weight','sleep_hours','sleep_quality','walk_min','treino','water_ml','coffee','alcohol'];
-  const lines=[header.join(',')];
-  for(const r of rows){
-    const d=r.data||{};
-    lines.push([USER?.id||'', r.date, d.score||'', d.weight||'', d.sleep?.hours||'', d.sleep?.quality||'', d.exercise?.walk||'', d.exercise?.treino||'', d.water||'', d.drinks?.coffee||'', d.drinks?.alcohol||''].join(','));
-  }
-  const blob=new Blob([lines.join('\\n')],{type:'text/csv;charset=utf-8'});
-  const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download='vida_plus_export.csv'; a.click(); URL.revokeObjectURL(url);
-}
-
-// ===== Aux =====
-function getYesterdayTreino(){
-  if(ALL_ROWS.length<2) return '';
-  const y = ALL_ROWS[1].data?.exercise?.treino;
-  return y ? ('Ontem: Treino '+y) : '';
 }
 
 // ===== Boot =====
@@ -294,7 +285,9 @@ async function gate(){
   if(USER){
     $('#loginOverlay').style.display='none'; $('#app').style.display='grid'; $('#loginStatus').textContent='logado como '+(USER.email||'');
     ALL_ROWS = await loadAllDays();
-    await ensureDayLoaded();
+    // ymd atual: mais novo salvo ou hoje
+    currentYmd = (ALL_ROWS[0]?.date) || fmtDateStr(new Date());
+    await ensureDayLoaded(); // usa currentYmd
     update();
     const periodRows = await getRowsForPeriod();
     renderHistory(periodRows);
@@ -326,277 +319,3 @@ document.addEventListener('DOMContentLoaded', ()=>{
   });
   bootstrap();
 });
-
-document.addEventListener('DOMContentLoaded', () => {
-  // 2.1 — “ / 100” sem mexer na tipografia
-  const outOf = document.querySelector('.scoreTop .outOf');
-  if (outOf && !outOf.dataset.sepFixed) {
-    outOf.dataset.sepFixed = '1';
-    // se alguém tiver colocado "/" dentro do score antes, normaliza
-    outOf.textContent = '100';
-  }
-
-  // 2.2 — Data do topo = datePicker (sem fuso)
-  const dateTop = document.getElementById('dateTop');
-  const dp = document.getElementById('datePicker');
-
-  function ymd(d){ const y=d.getFullYear(); const m=String(d.getMonth()+1).padStart(2,'0'); const dd=String(d.getDate()).padStart(2,'0'); return `${y}-${m}-${dd}`; }
-  function fromYmd(s){ const [y,m,d]=s.split('-').map(Number); return new Date(y, m-1, d); }
-  function fmtPtShort(d){
-    const o={day:'2-digit',month:'short',weekday:'short'};
-    return d.toLocaleDateString('pt-BR',o).replace('.', '');
-  }
-
-  // valor inicial do input
-  if (!dp.value) dp.value = ymd(new Date());
-  renderDateTop();
-
-  function renderDateTop(){
-    if (!dateTop) return;
-    const d = fromYmd(dp.value);
-    dateTop.textContent = fmtPtShort(d); // ex: "10/ago (dom)"
-  }
-
-  // abre o seletor no iOS/desktop com fallback
-  if (dateTop){
-    dateTop.addEventListener('click', () => {
-      try {
-        if (dp.showPicker) dp.showPicker(); else dp.click();
-      } catch(e) {
-        const s = prompt('Digite a data (AAAA-MM-DD):', dp.value);
-        if (s && /^\d{4}-\d{2}-\d{2}$/.test(s)) {
-          dp.value = s;
-          dp.dispatchEvent(new Event('change', {bubbles:true}));
-        }
-      }
-    });
-  }
-
-  // quando trocar a data, atualiza rótulo e deixa o resto do app reagir
-  dp.addEventListener('change', () => {
-    renderDateTop();
-    // Se seu app já escuta essa troca, dispare um evento genérico:
-    try{ window.dispatchEvent(new CustomEvent('vida:date:change',{detail:{ymd:dp.value}})); }catch(_){}
-    // Se você tiver uma função própria, descomente:
-    // if (typeof window.loadDay === 'function') window.loadDay(dp.value);
-    // ou: if (typeof window.setCurrentYmd === 'function') window.setCurrentYmd(dp.value);
-  });
-});
-
-// ——— Topo: data correta e iOS datepicker ———
-(function(){
-  const dateTop = document.getElementById('dateTop');
-  const dp = document.getElementById('datePicker');
-  if(!dateTop || !dp) return;
-
-  // Utilidades sem UTC (tudo local)
-  function ymdLocal(d){
-    const y=d.getFullYear(), m=String(d.getMonth()+1).padStart(2,'0'), dd=String(d.getDate()).padStart(2,'0');
-    return `${y}-${m}-${dd}`;
-  }
-  function fromYmdLocal(s){
-    const [y,m,d]=s.split('-').map(Number);
-    return new Date(y, m-1, d); // local, não UTC
-  }
-  function fmtPtShortLocal(d){
-    // Evita . em "ago." no iOS
-    const weekday = d.toLocaleDateString('pt-BR',{weekday:'short'}).replace('.', '');
-    const month   = d.toLocaleDateString('pt-BR',{month:'short'}).replace('.', '');
-    const day     = String(d.getDate()).padStart(2,'0');
-    return `${day}/${month} (${weekday})`;
-  }
-
-  // Inicializa valor do input se vazio
-  if(!dp.value){
-    dp.value = ymdLocal(new Date());
-  }
-
-  // Renderiza rótulo sem offset
-  function renderTopDate(){
-    const d = fromYmdLocal(dp.value);
-    dateTop.textContent = fmtPtShortLocal(d);
-  }
-  renderTopDate();
-
-  // Abre seletor (iOS/desktop). Importante: o input NÃO está display:none
-  dateTop.addEventListener('click', () => {
-    try{
-      if (typeof dp.showPicker === 'function') {
-        dp.showPicker();
-      } else {
-        // iOS precisa foco+click em um elemento visível
-        dp.focus();
-        dp.click();
-      }
-    }catch(e){
-      const s = prompt('Digite a data (AAAA-MM-DD):', dp.value);
-      if (s && /^\d{4}-\d{2}-\d{2}$/.test(s)) {
-        dp.value = s;
-        dp.dispatchEvent(new Event('change', {bubbles:true}));
-      }
-    }
-  });
-
-  dp.addEventListener('change', () => {
-    renderTopDate();
-    // Notifica o app (se você já escuta esse evento, manter)
-    try{ window.dispatchEvent(new CustomEvent('vida:date:change',{detail:{ymd:dp.value}})); }catch(_){}
-    // Se houver função interna pra carregar o dia, descomente:
-    // if (typeof window.loadDay === 'function') window.loadDay(dp.value);
-  });
-
-  // Garante o “ / 100 ” com espaço, sem trocar tipografia
-  const outEl = document.querySelector('.scoreTop .outOf');
-  if (outEl) {
-    outEl.textContent = '100';
-    if (!outEl.dataset.sepFixed) {
-      outEl.dataset.sepFixed = '1';
-      if (!outEl.previousSibling || outEl.previousSibling.textContent.indexOf('/') === -1) {
-        // deixa o /  no elemento anterior, se for o seu HTML, ignore
-        // visualmente o espaço é garantido via CSS pseudo-element no seu CSS,
-        // mas se preferir forçar no texto, comente a linha abaixo e use replace.
-      }
-    }
-  }
-})();
-
-
-// ——— Topo: data local correta + datepicker Android/iOS sem prompt ———
-(function(){
-  const dateTop = document.getElementById('dateTop');
-  const dp = document.getElementById('datePicker');
-  if (!dateTop || !dp) return;
-
-  // 2.1 “/ 100” com espaço (mantém sua tipografia)
-  const outEl = document.querySelector('.scoreTop .outOf');
-  if (outEl) outEl.textContent = '100';
-
-  // 2.2 utilitários 100% locais (evita UTC e -1 dia)
-  const meses = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
-  const dias  = ['dom','seg','ter','qua','qui','sex','sáb'];
-
-  function ymdLocal(d){
-    const y=d.getFullYear(), m=String(d.getMonth()+1).padStart(2,'0'), dd=String(d.getDate()).padStart(2,'0');
-    return `${y}-${m}-${dd}`;
-  }
-  function fromYmdLocal(s){
-    const [y,m,d]=s.split('-').map(Number);
-    // meio-dia local evita qualquer virada/offset
-    return new Date(y, m-1, d, 12, 0, 0, 0);
-  }
-  function fmtLocal(s){
-    const [y,m,d]=s.split('-').map(Number);
-    const dt = new Date(y, m-1, d, 12, 0, 0, 0);
-    const dd = String(d).padStart(2,'0');
-    return `${dd}/${meses[m-1]} (${dias[dt.getDay()]})`;
-  }
-
-  // 2.3 inicializa input se vazio
-  if (!dp.value) dp.value = ymdLocal(new Date());
-
-  // 2.4 render no topo sem offset
-  function renderTopDate(){ dateTop.textContent = fmtLocal(dp.value); }
-  renderTopDate();
-
-  // 2.5 abrir seletor (sem prompt)
-  dateTop.addEventListener('click', () => {
-    // Android/Chrome e iOS modernos
-    if (typeof dp.showPicker === 'function') {
-      dp.showPicker();
-    } else {
-      // fallback suave
-      dp.focus();
-      dp.click();
-    }
-  });
-
-  // 2.6 ao trocar a data
-  dp.addEventListener('change', () => {
-    // normaliza para AAAA-MM-DD local (alguns navegadores podem devolver outro formato)
-    const s = dp.value;
-    if (/^\d{4}-\d{2}-\d{2}$/.test(s)) {
-      dp.value = s;
-    } else if (!isNaN(dp.valueAsDate?.getTime())) {
-      dp.value = ymdLocal(dp.valueAsDate);
-    }
-    renderTopDate();
-    // notifica o app (caso você já use esse evento)
-    try{ window.dispatchEvent(new CustomEvent('vida:date:change',{detail:{ymd:dp.value}})); }catch(_){}
-    // se tiver sua função própria, descomente:
-    // if (typeof window.loadDay === 'function') window.loadDay(dp.value);
-  });
-})();
-
-
-// ===== Topo 6.0.0 — sem datepicker, data local correta (UTC-3 safe) e header fixo =====
-(function(){
-  const dateTop = document.getElementById('dateTop');
-  const outEl   = document.querySelector('.scoreTop .outOf');
-  if (!dateTop || !outEl) return;
-
-  // Mantém o " / 100 " com espaço sem mudar tipografia
-  outEl.textContent = '100';
-
-  // Formatação 100% local (evita -1 dia em qualquer fuso)
-  const meses = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
-  const dias  = ['dom','seg','ter','qua','qui','sex','sáb'];
-
-  function ymdLocal(d){
-    const y = d.getFullYear(), m = String(d.getMonth()+1).padStart(2,'0'), dd = String(d.getDate()).padStart(2,'0');
-    return `${y}-${m}-${dd}`;
-  }
-  function fromYmdLocal(s){
-    // Sempre cria data no MEIO-DIA local pra matar qualquer offset/horário de verão
-    const [y,m,d] = s.split('-').map(Number);
-    return new Date(y, m-1, d, 12, 0, 0, 0);
-  }
-  function fmtLocal(ymd){
-    const [y,m,d] = ymd.split('-').map(Number);
-    const dt = new Date(y, m-1, d, 12, 0, 0, 0);
-    return `${String(d).padStart(2,'0')}/${meses[m-1]} (${dias[dt.getDay()]})`;
-  }
-
-  // Estado atual da data (usa o que o app já tiver; senão, hoje)
-  let currentYmd = (window.currentYmd && /^\d{4}-\d{2}-\d{2}$/.test(window.currentYmd))
-      ? window.currentYmd
-      : ymdLocal(new Date());
-
-  function renderTopDate(){
-    dateTop.textContent = fmtLocal(currentYmd);
-  }
-  renderTopDate();
-
-  // Se o app trocar a data em outro lugar, escutamos e atualizamos o topo
-  window.addEventListener('vida:date:change', (ev)=>{
-    const ymd = ev?.detail?.ymd;
-    if (ymd && /^\d{4}-\d{2}-\d{2}$/.test(ymd)) {
-      currentYmd = ymd;
-      window.currentYmd = ymd; // mantém compat
-      renderTopDate();
-    }
-  });
-
-  // Se por acaso o app usar Date e repassar objeto, normalizamos aqui também
-  window.addEventListener('vida:date:setDateObj', (ev)=>{
-    const dt = ev?.detail?.date;
-    if (dt instanceof Date) {
-      currentYmd = ymdLocal(new Date(dt.getFullYear(), dt.getMonth(), dt.getDate(), 12,0,0,0));
-      window.currentYmd = currentYmd;
-      renderTopDate();
-    }
-  });
-
-  // Exponho um helper opcional (não obrigatório) caso queira setar manualmente:
-  window.setVidaDateYmd = function(ymd){
-    if (/^\d{4}-\d{2}-\d{2}$/.test(ymd)) {
-      currentYmd = ymd;
-      window.currentYmd = ymd;
-      renderTopDate();
-      window.dispatchEvent(new CustomEvent('vida:date:change',{detail:{ymd}}));
-    }
-  };
-
-  // Garantia extra: se alguém (ex.: Supabase restore) mexer no currentYmd depois do load
-  setTimeout(()=>{ if (window.currentYmd && window.currentYmd!==currentYmd){ currentYmd=window.currentYmd; renderTopDate(); } }, 0);
-})();
-
