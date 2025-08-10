@@ -1,5 +1,5 @@
 
-/* Vida+ v5.1.5 — app completo (login, render, supabase diag, CSV, projeção, espaçamentos) */
+/* Vida+ v5.1.4 — app completo (login, render, supabase diag, CSV, projeção, espaçamentos) */
 const pad=(n)=>String(n).padStart(2,'0');
 const months=['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
 const days=['dom','seg','ter','qua','qui','sex','sáb'];
@@ -433,7 +433,7 @@ async function upsertDay(k){
   if(!supabaseClient) return;
   const { data:{ user } } = await supabaseClient.auth.getUser(); if(!user) return;
   const payload={ user_id:user.id, date:k, data: state.cache[k]||{} };
-  const { error } = await supabaseClient.from('days').upsert(payload, { onConflict: 'user_id,date' }).select(); if(error){ console.error('Supabase UPSERT error payload=', payload, error); }
+  const { error } = await supabaseClient.from('days').upsert(payload).select(); if(error){ console.error('Supabase UPSERT error payload=', payload, error); }
   if(error){ console.error('upsert error', error); setAuthStatus('erro ao salvar'); }
   else { setAuthStatus('salvo'); }
 }
