@@ -78,6 +78,73 @@ header#hdr{
 html, body { overflow-x: hidden; }     /* ok manter */
 main{ overflow: visible; }             /* importante p/ sticky funcionar */
 
+/* ==== PATCH TOPO v6.0.1 (somente topo) ==== */
+
+/* 0) Reserva espaço do topo fixo pra não sobrepor o conteúdo */
+:root{ --hdrH: 58px; }      /* ajuste fino se precisar (+/- 2px) */
+body{ padding-top: var(--hdrH); }
+
+/* 1) Topo realmente flutuante e alinhado à largura das seções */
+header#hdr{
+  position: fixed;          /* em vez de sticky */
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: var(--pageW);      /* mesma largura das seções */
+  z-index: 1000;
+  backdrop-filter: blur(8px);
+  background: #0e0f12cc;
+  border-bottom: 1px solid var(--line);
+  padding: 10px var(--pad);
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 12px;
+}
+
+/* 2) Nota: mesmo tamanho do "Vida+" */
+h1{ font-size:22px; }                 /* você já tinha */
+.scoreTop{ font-size:22px; font-weight:800; font-variant-numeric:tabular-nums; }
+
+/* 3) “/ 100”: menor e cinza discreto, com espaço antes */
+.scoreTop .outOf{
+  font-size:12px;
+  color: var(--muted,#9aa4b2);
+  opacity:.9;
+}
+.scoreTop .outOf::before{
+  content:" / ";
+  color: var(--muted,#9aa4b2);
+  opacity:.9;
+  margin:0 4px 0 2px;  /* garante espaço visível antes do 100 */
+}
+
+/* 4) Sequência com borda (pill) */
+.streak{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  padding:4px 10px;
+  border:1px solid var(--line,#2a2d33);
+  border-radius:999px;
+  background:rgba(255,255,255,0.03);
+  font-weight:600;
+}
+
+/* 5) Data: uma linha, sem borda, não cortar */
+.dateTop{
+  border: none;
+  background: transparent;
+  font-size: 12px;
+  line-height: 1;
+  padding: 2px 6px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  justify-self: end;
+}
+
+
   
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
