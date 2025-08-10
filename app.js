@@ -526,3 +526,77 @@ document.addEventListener('DOMContentLoaded', () => {
     // if (typeof window.loadDay === 'function') window.loadDay(dp.value);
   });
 })();
+
+
+// ===== Topo 6.0.0 — sem datepicker, data local correta (UTC-3 safe) e header fixo =====
+(function(){
+  const dateTop = document.getElementById('dateTop');
+  const outEl   = document.querySelector('.scoreTop .outOf');
+  if (!dateTop || !outEl) return;
+
+  // Mantém o " / 100 " com espaço sem mudar tipografia
+  outEl.textContent = '100';
+
+  // Formatação 100% local (evita -1 dia em qualquer fuso)
+  const meses = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
+  const dias  = ['dom','seg','ter','qua','qui','sex','sáb'];
+
+  function ymdLocal(d){
+    const y = d.getFullYear(), m = String(d.getMonth()+1).padStart(2,'0'), dd = String(d.getDate()).padStart(2,'0');
+    return `${y}-${m}-${dd}`;
+  }
+  function fromYmdLocal(s){
+    // Sempre cria data no MEIO-DIA local pra matar qualquer offset/horário de verão
+    const [y,m,d] = s.split('-').map(Number);
+    return new Date(y, m-1, d, 12, 0, 0, 0);
+  }
+  function fmtLocal(ymd){
+    const [y,m,d] = ymd.split('-').map(Number);
+    const dt = new Date(y, m-1, d, 12, 0, 0, 0);
+    return `${String(d).padStart(2,'0')}/${meses[m-1]} (${dias[dt.getDay()]})`;
+  }
+
+  // Estado atual da data (usa o que o app já tiver; senão, hoje)
+  let currentYmd = (window.currentYmd && /^\d{4}-\d{2}-\d{2}$/.test(window.currentYmd))
+      ? window.currentYmd
+      : ymdLocal(new Date());
+
+  function renderTopDate(){
+    dateTop.textContent = fmtLocal(currentYmd);
+  }
+  renderTopDate();
+
+  // Se o app trocar a data em outro lugar, escutamos e atualizamos o topo
+  window.addEventListener('vida:date:change', (ev)=>{
+    const ymd = ev?.detail?.ymd;
+    if (ymd && /^\d{4}-\d{2}-\d{2}$/.test(ymd)) {
+      currentYmd = ymd;
+      window.currentYmd = ymd; // mantém compat
+      renderTopDate();
+    }
+  });
+
+  // Se por acaso o app usar Date e repassar objeto, normalizamos aqui também
+  window.addEventListener('vida:date:setDateObj', (ev)=>{
+    const dt = ev?.detail?.date;
+    if (dt instanceof Date) {
+      currentYmd = ymdLocal(new Date(dt.getFullYear(), dt.getMonth(), dt.getDate(), 12,0,0,0));
+      window.currentYmd = currentYmd;
+      renderTopDate();
+    }
+  });
+
+  // Exponho um helper opcional (não obrigatório) caso queira setar manualmente:
+  window.setVidaDateYmd = function(ymd){
+    if (/^\d{4}-\d{2}-\d{2}$/.test(ymd)) {
+      currentYmd = ymd;
+      window.currentYmd = ymd;
+      renderTopDate();
+      window.dispatchEvent(new CustomEvent('vida:date:change',{detail:{ymd}}));
+    }
+  };
+
+  // Garantia extra: se alguém (ex.: Supabase restore) mexer no currentYmd depois do load
+  setTimeout(()=>{ if (window.currentYmd && window.currentYmd!==currentYmd){ currentYmd=window.currentYmd; renderTopDate(); } }, 0);
+})();
+
