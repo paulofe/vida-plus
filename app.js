@@ -460,3 +460,69 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 })();
 
+
+// ——— Topo: data local correta + datepicker Android/iOS sem prompt ———
+(function(){
+  const dateTop = document.getElementById('dateTop');
+  const dp = document.getElementById('datePicker');
+  if (!dateTop || !dp) return;
+
+  // 2.1 “/ 100” com espaço (mantém sua tipografia)
+  const outEl = document.querySelector('.scoreTop .outOf');
+  if (outEl) outEl.textContent = '100';
+
+  // 2.2 utilitários 100% locais (evita UTC e -1 dia)
+  const meses = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
+  const dias  = ['dom','seg','ter','qua','qui','sex','sáb'];
+
+  function ymdLocal(d){
+    const y=d.getFullYear(), m=String(d.getMonth()+1).padStart(2,'0'), dd=String(d.getDate()).padStart(2,'0');
+    return `${y}-${m}-${dd}`;
+  }
+  function fromYmdLocal(s){
+    const [y,m,d]=s.split('-').map(Number);
+    // meio-dia local evita qualquer virada/offset
+    return new Date(y, m-1, d, 12, 0, 0, 0);
+  }
+  function fmtLocal(s){
+    const [y,m,d]=s.split('-').map(Number);
+    const dt = new Date(y, m-1, d, 12, 0, 0, 0);
+    const dd = String(d).padStart(2,'0');
+    return `${dd}/${meses[m-1]} (${dias[dt.getDay()]})`;
+  }
+
+  // 2.3 inicializa input se vazio
+  if (!dp.value) dp.value = ymdLocal(new Date());
+
+  // 2.4 render no topo sem offset
+  function renderTopDate(){ dateTop.textContent = fmtLocal(dp.value); }
+  renderTopDate();
+
+  // 2.5 abrir seletor (sem prompt)
+  dateTop.addEventListener('click', () => {
+    // Android/Chrome e iOS modernos
+    if (typeof dp.showPicker === 'function') {
+      dp.showPicker();
+    } else {
+      // fallback suave
+      dp.focus();
+      dp.click();
+    }
+  });
+
+  // 2.6 ao trocar a data
+  dp.addEventListener('change', () => {
+    // normaliza para AAAA-MM-DD local (alguns navegadores podem devolver outro formato)
+    const s = dp.value;
+    if (/^\d{4}-\d{2}-\d{2}$/.test(s)) {
+      dp.value = s;
+    } else if (!isNaN(dp.valueAsDate?.getTime())) {
+      dp.value = ymdLocal(dp.valueAsDate);
+    }
+    renderTopDate();
+    // notifica o app (caso você já use esse evento)
+    try{ window.dispatchEvent(new CustomEvent('vida:date:change',{detail:{ymd:dp.value}})); }catch(_){}
+    // se tiver sua função própria, descomente:
+    // if (typeof window.loadDay === 'function') window.loadDay(dp.value);
+  });
+})();
