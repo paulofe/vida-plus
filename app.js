@@ -42,6 +42,15 @@ function renderTop(){
     dmEl.textContent = m? m[1] : label;
     wdEl.textContent = w? w[1] : '';
   }
+  // streak bar abaixo do topo: até 6 ícones; acima disso, 1 ícone com xN
+  const streakVal = computeStreak(ALL_ROWS);
+  const iconsEl = document.getElementById('streakIcons');
+  const textEl  = document.getElementById('streakText');
+  if(iconsEl && textEl){
+    if(!streakVal){ iconsEl.textContent=''; textEl.textContent=''; }
+    else if(streakVal<=6){ iconsEl.textContent = '🔥'.repeat(streakVal); textEl.textContent=''; }
+    else { iconsEl.textContent='🔥'; textEl.textContent=' x '+streakVal; }
+  }
 }
 
 // ===== Meals UI =====
