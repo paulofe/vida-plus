@@ -207,19 +207,24 @@ h1{ font-size:22px; }                 /* você já tinha */
   <div class="row"><div><strong>⚖️ Peso</strong></div></div>
 
   <div class="row">
-    <span class="kgLabel small">kg</span>
-  </div>
-    
-  <div class="row">
-    <input id="pesoHoje" type="number" step="0.01" placeholder="ex: 88.2" style="width:160px">
+
+      <div class="col">
+        <label class="small">Kgs</label>
+        <input id="pesoHoje" type="number" step="0.01" placeholder="ex: 88.2" style="width:160px">
+        <div class="row tight">
+          <div id="pesoYesterday" class="hint">Ontem: —</div>
+        </div>
+        <div class="row tight">
+          <div id="pesoMeta" class="hint">Meta: —</div>
+        </div>
+      </div>
+  
   </div>
 
-  <div class="row tight">
-    <div id="pesoYesterday" class="hint">Ontem: —</div>
-  </div>
-  <div class="row tight">
-    <div id="pesoMeta" class="hint">Meta: —</div>
-  </div>
+
+
+  
+  
 </section>
 
   <!-- Sono -->
