@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Topo Vida+</title>
+<style>
+  body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background-color: #f8f8f8;
+  }
+
+  .top-bar {
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+    background-color: white;
+    padding: 8px 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #ddd;
+  }
+
+  .date {
+    display: flex;
+    flex-direction: column;
+    line-height: 1.1;
+  }
+  .date .day-month {
+    font-size: 1.1em;
+    font-weight: bold;
+  }
+  .date .weekday {
+    font-size: 0.85em;
+    color: gray;
+  }
+
+  .title {
+    font-size: 1.4em;
+    font-weight: bold;
+  }
+
+  .score {
+    font-size: 1.4em;
+    font-weight: bold;
+  }
+  .score small {
+    font-size: 0.8em;
+    color: gray;
+    font-weight: normal;
+    margin-left: 4px;
+  }
+
+  .streak {
+    text-align: center;
+    padding: 4px 0;
+    font-size: 0.85em;
+    color: #ff6600;
+  }
+  .streak .icon {
+    font-size: 0.9em;
+    margin-right: 2px;
+  }
+</style>
+</head>
+<body>
+
+<div class="top-bar">
+  <div class="date">
+    <span class="day-month">11 agosto</span>
+    <span class="weekday">segunda</span>
+  </div>
+  <div class="title">Vida+</div>
+  <div class="score">85 <small>/ 100</small></div>
+</div>
+<div class="streak">
+  <span class="icon">🔥</span><span class="icon">🔥</span><span class="icon">🔥</span> x 3
+</div>
+
+</body>
+</html>
