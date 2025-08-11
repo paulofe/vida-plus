@@ -56,11 +56,7 @@ function scoreAll(){
     sSono=Math.round(25*(0.7*Math.min(h/m,1)+0.3*(q/3)));
     // Força texto simples para compat iOS/Android, sem depender de espaçamentos especiais
     const el = $('#scoreSono');
-    if(el){
-      // Evita caracteres especiais invisíveis em alguns iOS; usa apenas ASCII
-      const open = '('; const close = ')'; const space = ' ';
-      el.textContent = open + space + String(sSono) + space + '/' + space + '25' + space + close;
-    }
+    if(el){ el.textContent = String(sSono) + ' / 25'; }
   }
   let sFood=0; Object.values(DAY.meals).forEach(v=>sFood+=v); sFood=Math.round((sFood/15)*45); $('#scoreFood').textContent=sFood+'/45';
   let sEx=Math.round(15*(0.6*Math.min((DAY.exercise.walk||0)/40,1)+0.4*(DAY.exercise.treino?1:0))); $('#scoreEx').textContent=sEx+'/15';

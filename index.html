@@ -164,12 +164,18 @@ h1{ font-size:22px; }                 /* você já tinha */
 
 /* Sono — alinhamentos e estilos */
 #secSono .row:first-child{ margin-bottom: 12px; }
-#secSono .sleepRow{ gap:14px; align-items:center; }
+#secSono .sleepRow{ gap:14px; align-items:flex-start; }
 #secSono #sleepHours{ width: 80px; }
 #secSono #sleepMetaHint{ color: var(--muted); }
-#secSono #scoreSono{ font-weight: 800; font-size: 16px; font-family: inherit; margin-left: 8px; }
+#secSono #scoreSono{ font-weight: 400; font-size: 16px; font-family: inherit; margin-left: 8px; }
 #secSono .sleepStarsWrap{ flex:1; display:flex; flex-direction:column; align-items:center; gap:6px; justify-content:center; }
 #secSono .stars{ align-items:center; }
+
+/* Pill de score do Sono (igual a .streak) */
+#secSono .scoreSonoPill{
+  display:inline-flex; align-items:center; gap:6px; padding:4px 10px;
+  border:1px solid var(--line,#2a2d33); border-radius:999px; background:rgba(255,255,255,0.03);
+}
 
 /* Cores de comparação para “Ontem” (usadas pelo JS) */
 #pesoYesterday .good{ color: var(--good); }    /* caiu: verde */
@@ -234,7 +240,7 @@ h1{ font-size:22px; }                 /* você já tinha */
 
   <!-- Sono -->
   <section id="secSono">
-    <div class="row"><div><strong>😴 Sono</strong> <span id="scoreSono">( 0 / 25 )</span></div></div>
+    <div class="row"><div><strong>😴 Sono</strong> <span id="scoreSono" class="scoreSonoPill">0 / 25</span></div></div>
     <div class="row sleepRow">
       <div class="col">
         <input id="sleepHours" type="number" step="0.1" placeholder="ex: 6.5">
