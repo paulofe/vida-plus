@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Vida+ Topo Fixo</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background-color: #121212;
+      color: #fff;
+    }
+
+    /* Topo fixo */
+    .top-bar {
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+      background-color: #1e1e1e;
+      padding: 10px 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid #333;
+    }
+
+    .date {
+      display: flex;
+      flex-direction: column;
+      font-size: 14px;
+      color: #bbb;
+      line-height: 1.1;
+    }
+
+    .title {
+      font-size: 20px;
+      font-weight: bold;
+    }
+
+    .score {
+      font-size: 20px;
+      font-weight: bold;
+    }
+
+    .score small {
+      font-size: 14px;
+      color: #bbb;
+      font-weight: normal;
+    }
+
+    /* Linha do streak */
+    .streak-bar {
+      background-color: #1e1e1e;
+      padding: 4px 16px;
+      font-size: 12px;
+      color: #ff9800;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      border-bottom: 1px solid #333;
+    }
+
+    .streak-bar img {
+      width: 14px;
+      height: 14px;
+    }
+
+    /* Conteúdo para teste de scroll */
+    .content {
+      padding: 16px;
+      line-height: 1.6;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Topo fixo -->
+  <div class="top-bar">
+    <div class="date">
+      <span>11 agosto</span>
+      <span>segunda</span>
+    </div>
+    <div class="title">Vida+</div>
+    <div class="score">85 <small>/ 100</small></div>
+  </div>
+
+  <!-- Linha do streak -->
+  <div class="streak-bar">
+    <img src="https://upload.wikimedia.org/wikipedia/commons/3/36/Emoji_u1f525.svg" alt="🔥">
+    <img src="https://upload.wikimedia.org/wikipedia/commons/3/36/Emoji_u1f525.svg" alt="🔥">
+    <img src="https://upload.wikimedia.org/wikipedia/commons/3/36/Emoji_u1f525.svg" alt="🔥">
+    <span>x 7</span>
+  </div>
+
+  <!-- Conteúdo para testar scroll -->
+  <div class="content">
+    <p>
+      Lorem ipsum dolor sit amet, consectetur adipiscing elit. Praesent a luctus lorem. Sed imperdiet, 
+      nisl nec laoreet suscipit, libero turpis fermentum magna, nec pretium sapien magna ut lorem.
+      Mauris condimentum erat non felis imperdiet, vitae blandit eros egestas. 
+      Suspendisse potenti. Curabitur et lorem eget augue volutpat facilisis. 
+      Phasellus sed libero non tortor vulputate vulputate. Integer sagittis magna vel metus eleifend, 
+      nec faucibus dui dictum.
+    </p>
+    <p>
+      Sed vitae ex nec est viverra malesuada. Aliquam erat volutpat. Sed nec eros id neque vulputate 
+      suscipit ac at lectus. Cras nec ultricies ligula, vitae faucibus orci. Pellentesque at condimentum dui. 
+      Donec non diam vitae sapien cursus sagittis vel at velit. Sed id sapien risus. Etiam quis lorem ac 
+      ligula dignissim viverra. Nulla facilisi.
+    </p>
+    <p>
+      Aenean sit amet lectus mi. Morbi ut tellus sed est sodales fermentum. Curabitur egestas magna et 
+      risus ultricies, in cursus ipsum tristique. Suspendisse potenti. Etiam non lectus ac velit viverra 
+      imperdiet. Integer ullamcorper dolor non purus malesuada, sit amet facilisis risus blandit. 
+      Duis ultricies lorem vel dolor tempor, sit amet vulputate augue malesuada.
+    </p>
+    <p>
+      Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia curae; Sed tempor 
+      augue et varius fermentum. Nulla facilisi. Integer sed dui a lorem dignissim ultricies. 
+      Phasellus faucibus, mi at condimentum luctus, elit nunc porttitor libero, eget sagittis felis 
+      diam eget lacus.
+    </p>
+    <p>
+      Ut fermentum arcu id odio egestas, eget porta risus malesuada. Sed eget risus felis. 
+      Nulla facilisi. Mauris sodales, ligula a porta aliquam, justo sapien fermentum justo, 
+      in porttitor sem velit at leo.
+    </p>
+  </div>
+
+</body>
+</html>
