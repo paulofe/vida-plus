@@ -163,12 +163,12 @@ h1{ font-size:22px; }                 /* você já tinha */
 #secPeso .kgRow .hint{ white-space:nowrap; }
 
 /* Sono — alinhamentos e estilos */
-#secSono .row:first-child{ margin-bottom: 8px; }
+#secSono .row:first-child{ margin-bottom: 12px; }
 #secSono .sleepRow{ gap:14px; align-items:center; }
 #secSono #sleepHours{ width: 80px; }
 #secSono #sleepMetaHint{ color: var(--muted); }
-#secSono #scoreSono{ font-weight: 800; font-size: 18px; font-family: inherit; }
-#secSono .sleepStarsWrap{ flex:1; display:flex; justify-content:center; }
+#secSono #scoreSono{ font-weight: 800; font-size: 18px; font-family: inherit; margin-left: 8px; }
+#secSono .sleepStarsWrap{ flex:1; display:flex; align-items:center; gap:10px; justify-content:center; }
 #secSono .stars{ align-items:center; }
 
 /* Cores de comparação para “Ontem” (usadas pelo JS) */
@@ -241,6 +241,7 @@ h1{ font-size:22px; }                 /* você já tinha */
         <div id="sleepMetaHint" class="hint">Meta: —</div>
       </div>
       <div class="sleepStarsWrap">
+        <label class="small">Qualidade</label>
         <div id="sleepStars" class="stars"><span class="star">★</span><span class="star">★</span><span class="star">★</span></div>
       </div>
     </div>
