@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Vida+ Topo Fixo</title>
+<style>
+  :root{
+    --pageW: 860px;
+    --hdrH: 56px; /* altura visual do topo (ajuste fino se precisar) */
+  }
+  body{
+    margin:0;
+    font-family: Arial, sans-serif;
+    background:#121212;
+    color:#fff;
+    padding-top: var(--hdrH); /* reserva para o topo fixo */
+  }
+
+  /* topo fixo */
+  .top-bar{
+    position: fixed;
+    inset: 0 0 auto 0; /* top:0; left:0; right:0 */
+    z-index: 1000;
+    background:#1e1e1e;
+    border-bottom:1px solid #333;
+  }
+  .wrap{
+    max-width: var(--pageW);
+    margin: 0 auto;
+    padding: 8px 16px;
+  }
+  .top-row{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:12px;
+  }
+
+  .date{
+    display:flex;
+    flex-direction:column;
+    line-height:1.1;
+  }
+  .date .day-month{
+    font-size:1.1em;
+    font-weight:700;
+  }
+  .date .weekday{
+    font-size:.85em;
+    color:#aaa;
+  }
+
+  .title{
+    font-size:1.4em;
+    font-weight:700;
+  }
+
+  .score{
+    font-size:1.4em;
+    font-weight:700;
+  }
+  .score small{
+    font-size:.85em;
+    color:#aaa;
+    font-weight:400;
+    margin-left:4px; /* garante espaço antes do / 100 */
+  }
+
+  /* streak fora do topo, alinhada à mesma largura */
+  .streak{
+    margin-top: 8px; /* logo abaixo do topo */
+    text-align:center;
+    font-size:.85em;
+    color:#ff8c42;
+  }
+  .streak .wrap{
+    padding-top: 0;
+    padding-bottom: 0;
+  }
+  .streak .icon{
+    font-size:.95em;
+    margin-right:2px;
+  }
+
+  /* conteúdo de teste pra rolar */
+  .content{
+    max-width: var(--pageW);
+    margin: 12px auto;
+    padding: 0 16px;
+    line-height:1.6;
+  }
+</style>
+</head>
+<body>
+
+<!-- TOPO FIXO -->
+<div class="top-bar">
+  <div class="wrap">
+    <div class="top-row">
+      <div class="date">
+        <span class="day-month">11 agosto</span>
+        <span class="weekday">segunda</span>
+      </div>
+      <div class="title">Vida+</div>
+      <div class="score">85 <small>/ 100</small></div>
+    </div>
+  </div>
+</div>
+
+<!-- STREAK (fora do topo) -->
+<div class="streak">
+  <div class="wrap">
+    <span class="icon">🔥</span><span class="icon">🔥</span><span class="icon">🔥</span> x 3
+  </div>
+</div>
+
+<!-- Conteúdo de teste (scroll) -->
+<div class="content">
+  <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nulla vehicula massa sit amet eros feugiat, at vehicula metus dictum. Suspendisse potenti. Integer accumsan, odio id dictum blandit, urna lacus volutpat lorem, in pharetra quam arcu id mauris.</p>
+  <p>Aliquam erat volutpat. Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia curae; Duis cursus tincidunt sem, quis facilisis risus rhoncus ut. Sed ut sapien ultrices, faucibus risus id, efficitur arcu. Integer suscipit vulputate nibh, sed finibus odio efficitur in.</p>
+  <p>Morbi at augue at justo commodo tristique. Integer tincidunt, ex ac accumsan feugiat, nulla nibh pharetra velit, id accumsan arcu lacus at mi. Sed vestibulum posuere porttitor. Cras aliquet justo a nisi bibendum, sit amet condimentum mi congue.</p>
+  <p>Sed maximus lorem at metus gravida, id bibendum lorem viverra. Integer non hendrerit eros. In dapibus dolor at justo interdum facilisis. Donec vitae mattis nunc, nec pellentesque mauris. Donec id velit ut mi gravida venenatis. Pellentesque habitant morbi tristique senectus et netus et malesuada fames ac turpis egestas.</p>
+  <p>Curabitur tempor tempor turpis, ac facilisis nisl molestie id. Donec fermentum lacinia justo, ut gravida magna luctus a. Donec interdum fermentum arcu, in efficitur felis lacinia sit amet. Nam et sem at dolor viverra pellentesque.</p>
+  <p>Praesent mattis nibh non risus fermentum, vitae ornare turpis pharetra. Cras sit amet porttitor nibh. Duis sed nisl vel lorem posuere feugiat. Quisque elementum odio non tristique luctus. Suspendisse potenti.</p>
+  <p>Vivamus posuere lorem sed mauris gravida, eget scelerisque diam ultricies. Suspendisse potenti. Etiam ac quam at felis venenatis imperdiet. Nulla dictum metus vel augue efficitur, ac aliquam lectus ullamcorper.</p>
+  <p>Duis et ligula sed elit faucibus ultrices. Integer eu ex et lorem tristique facilisis. Sed aliquam ipsum non risus faucibus, a hendrerit dolor auctor. Vestibulum accumsan lacus lectus, non porttitor massa dapibus non.</p>
+  <p>Etiam hendrerit posuere rhoncus. Aliquam erat volutpat. Pellentesque non pharetra felis, id cursus sem. Vestibulum non libero in velit gravida tristique. Sed tincidunt, massa id consectetur ultricies, lorem erat rhoncus tortor, non faucibus lectus enim a felis.</p>
+  <p>Maecenas nec purus dolor. Vestibulum congue eros ac nunc volutpat, id gravida est gravida. Sed sit amet pretium lectus, vitae porta erat. Fusce vulputate arcu vel ipsum bibendum, sed condimentum tellus efficitur.</p>
+</div>
+
+</body>
+</html>
