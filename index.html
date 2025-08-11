@@ -162,6 +162,15 @@ h1{ font-size:22px; }                 /* você já tinha */
 #secPeso .kgRow .kgSide{ display:flex; flex-direction:column; gap:2px; }
 #secPeso .kgRow .hint{ white-space:nowrap; }
 
+/* Sono — alinhamentos e estilos */
+#secSono .row:first-child{ margin-bottom: 8px; }
+#secSono .sleepRow{ gap:14px; align-items:center; }
+#secSono #sleepHours{ width: 80px; }
+#secSono #sleepMetaHint{ color: var(--muted); }
+#secSono #scoreSono{ font-weight: 800; font-size: 18px; font-family: inherit; }
+#secSono .sleepStarsWrap{ flex:1; display:flex; justify-content:center; }
+#secSono .stars{ align-items:center; }
+
 /* Cores de comparação para “Ontem” (usadas pelo JS) */
 #pesoYesterday .good{ color: var(--good); }    /* caiu: verde */
 #pesoYesterday .warn{ color: var(--warn); }    /* igual: amarelo */
@@ -224,16 +233,14 @@ h1{ font-size:22px; }                 /* você já tinha */
 </section>
 
   <!-- Sono -->
-  <section>
-    <div class="row"><div><strong>😴 Sono</strong> <span id="scoreSono" class="hint">0/25</span></div></div>
-    <div class="row">
+  <section id="secSono">
+    <div class="row"><div><strong>😴 Sono</strong> <span id="scoreSono">( 0 / 25 )</span></div></div>
+    <div class="row sleepRow">
       <div class="col">
-        <label class="small">Horas dormidas</label>
-        <input id="sleepHours" type="number" step="0.1" placeholder="ex: 6.5" style="width:120px">
+        <input id="sleepHours" type="number" step="0.1" placeholder="ex: 6.5">
         <div id="sleepMetaHint" class="hint">Meta: —</div>
       </div>
-      <div class="col right">
-        <label class="small">Qualidade</label>
+      <div class="sleepStarsWrap">
         <div id="sleepStars" class="stars"><span class="star">★</span><span class="star">★</span><span class="star">★</span></div>
       </div>
     </div>
