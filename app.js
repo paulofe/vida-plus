@@ -53,7 +53,7 @@ function setStars(container, val){ container.querySelectorAll('.star').forEach((
 // ===== Score =====
 function scoreAll(){
   let sSono=0; { const m=Number(CFG.sleep||7), h=Number(DAY.sleep.hours||0), q=Number(DAY.sleep.quality||0);
-    sSono=Math.round(25*(0.7*Math.min(h/m,1)+0.3*(q/3))); $('#scoreSono').textContent=sSono+'/25'; }
+    sSono=Math.round(25*(0.7*Math.min(h/m,1)+0.3*(q/3))); $('#scoreSono').textContent=`( ${sSono} / 25 )`; }
   let sFood=0; Object.values(DAY.meals).forEach(v=>sFood+=v); sFood=Math.round((sFood/15)*45); $('#scoreFood').textContent=sFood+'/45';
   let sEx=Math.round(15*(0.6*Math.min((DAY.exercise.walk||0)/40,1)+0.4*(DAY.exercise.treino?1:0))); $('#scoreEx').textContent=sEx+'/15';
   let sWat=Math.round(10*Math.min((DAY.water||0)/CFG.water,1)); $('#scoreWater').textContent=sWat+'/10';
