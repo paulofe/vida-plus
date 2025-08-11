@@ -168,7 +168,7 @@ h1{ font-size:22px; }                 /* você já tinha */
 #secSono #sleepHours{ width: 80px; }
 #secSono #sleepMetaHint{ color: var(--muted); }
 #secSono #scoreSono{ font-weight: 400; font-size: 15px; font-family: inherit; margin-left: 8px; }
-#secSono .sleepStarsWrap{ flex:1; display:flex; flex-direction:column; align-items:flex-start; gap:2px; justify-content:center; }
+#secSono .sleepStarsWrap{ flex:1; display:flex; flex-direction:column; align-items:center; gap:2px; justify-content:center; }
 #secSono .stars{ align-items:center; }
 
 /* Pill de score do Sono (igual a .streak) */
@@ -240,7 +240,7 @@ h1{ font-size:22px; }                 /* você já tinha */
 
   <!-- Sono -->
   <section id="secSono">
-    <div class="row"><div><strong>😴 Sono</strong> <span id="scoreSono" class="scoreSonoPill">0 / 25</span></div></div>
+    <div class="row"><div><strong>😴 Sono</strong></div><span id="scoreSono" class="scoreSonoPill right">0 / 25</span></div>
     <div class="row sleepRow">
       <div class="col">
         <input id="sleepHours" type="number" step="0.1" placeholder="ex: 6.5">
