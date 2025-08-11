@@ -32,7 +32,16 @@ function defaultDay(){
 function renderTop(){
   $('#scoreTop').textContent = DAY.score||0;
   $('#streakNum').textContent = computeStreak(ALL_ROWS);
-  $('#dateTop').textContent = fmtDateLabel(currentYmd); // só formata a string
+  const label = fmtDateLabel(currentYmd);
+  // label vem como 11/ago (seg)
+  const dmEl = document.getElementById('dateDayMonth');
+  const wdEl = document.getElementById('dateWeekday');
+  if(dmEl && wdEl){
+    const m = label.match(/^(\d{2}\/[^ ]+)/); // parte do dia/mes
+    const w = label.match(/\(([^)]+)\)/);     // weekday entre parênteses
+    dmEl.textContent = m? m[1] : label;
+    wdEl.textContent = w? w[1] : '';
+  }
 }
 
 // ===== Meals UI =====

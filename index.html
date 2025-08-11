@@ -78,29 +78,27 @@ header#hdr{
 html, body { overflow-x: hidden; }     /* ok manter */
 main{ overflow: visible; }             /* importante p/ sticky funcionar */
 
-/* ==== PATCH TOPO v6.0.1 (somente topo) ==== */
+/* ==== TOP BAR (novo layout) ==== */
 
 /* 0) Reserva espaço do topo fixo pra não sobrepor o conteúdo */
-:root{ --hdrH: 58px; }      /* ajuste fino se precisar (+/- 2px) */
+:root{ --hdrH: 56px; }      /* altura do topo fixo */
 body{ padding-top: var(--hdrH); }
 
-/* 1) Topo realmente flutuante e alinhado à largura das seções */
-header#hdr{
-  position: fixed;          /* em vez de sticky */
-  top: 0;
-  left: 50%;
-  transform: translateX(-50%);
-  width: var(--pageW);      /* mesma largura das seções */
-  z-index: 1000;
-  backdrop-filter: blur(8px);
-  background: #0e0f12cc;
-  border-bottom: 1px solid var(--line);
-  padding: 10px var(--pad);
-  display: grid;
-  grid-template-columns: auto 1fr auto;
-  align-items: center;
-  gap: 12px;
-}
+/* barra superior fixa */
+.top-bar{ position: fixed; inset: 0 0 auto 0; z-index: 1000; background:#1e1e1e; border-bottom:1px solid #333; }
+.top-bar .wrap{ max-width: var(--pageW); margin:0 auto; padding:8px 16px; }
+.top-bar .top-row{ display:flex; justify-content:space-between; align-items:center; gap:12px; }
+.top-bar .date{ display:flex; flex-direction:column; line-height:1.1; }
+.top-bar .date .day-month{ font-size:1.1em; font-weight:700; }
+.top-bar .date .weekday{ font-size:.85em; color:#aaa; }
+.top-bar .title{ font-size:1.4em; font-weight:700; }
+.top-bar .score{ font-size:1.4em; font-weight:700; }
+.top-bar .score small{ font-size:.85em; color:#aaa; font-weight:400; margin-left:4px; }
+
+/* streak fora do topo, alinhada à mesma largura */
+.streakBar{ margin-top: 8px; text-align:center; font-size:.85em; color:#ff8c42; }
+.streakBar .wrap{ max-width: var(--pageW); margin:0 auto; padding:0 16px; }
+.streakBar .icon{ font-size:.95em; margin-right:2px; }
 
 /* 2) Nota: mesmo tamanho do "Vida+" */
 h1{ font-size:22px; }                 /* você já tinha */
@@ -192,14 +190,25 @@ h1{ font-size:22px; }                 /* você já tinha */
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>window.SUPABASE_URL="https://ftqjhcgzlnfuqlktltgw.supabase.co";window.SUPABASE_ANON="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ0cWpoY2d6bG5mdXFsa3RsdGd3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQ3NDk3ODUsImV4cCI6MjA3MDMyNTc4NX0.HwuDNMTCa2erpLsnjRnfwpHCtqBLmBRqMW2lmaASxDM";</script>
 </head><body>
-<header id="hdr">
-  <h1>Vida+</h1>
-  <div class="top-center">
-    <div id="dateTop" class="dateTop">—</div>
-    <div class="streak"><span id="streakNum">0</span> 🔥</div>
+<!-- TOPO FIXO -->
+<div class="top-bar">
+  <div class="wrap">
+    <div class="top-row">
+      <div class="date">
+        <span class="day-month" id="dateDayMonth">—</span>
+        <span class="weekday" id="dateWeekday">—</span>
+      </div>
+      <div class="title">Vida+</div>
+      <div class="score"><span id="scoreTop">0</span> <small>/ 100</small></div>
+    </div>
   </div>
-  <div class="scoreTop"><span id="scoreTop">0</span><span class="outOf">100</span></div>
-</header>
+  </div>
+<!-- STREAK (fora do topo) -->
+<div class="streakBar">
+  <div class="wrap">
+    <span class="icon">🔥</span><span class="icon">🔥</span><span class="icon">🔥</span> x <span id="streakNum">0</span>
+  </div>
+</div>
 
 <div id="loginOverlay">
   <div class="loginCard">
