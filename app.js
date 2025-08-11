@@ -120,6 +120,18 @@ function paint(){
 
   // sono
   setStars($('#sleepStars'), DAY.sleep.quality||0);
+  // Sono: meta a partir de CFG.sleep
+  (function(){
+    const sleepMetaEl = document.getElementById('sleepMetaHint');
+    if(sleepMetaEl){
+      const sleepTarget = Number(CFG.sleep);
+      if(Number.isFinite(sleepTarget) && sleepTarget>0){
+        sleepMetaEl.textContent = 'Meta: ' + sleepTarget + ' h';
+      } else {
+        sleepMetaEl.textContent = 'Meta: —';
+      }
+    }
+  })();
   // refeições
   const keys=['bfast','snack1','lunch','snack2','dinner'];
   $$('#meals .meal').forEach((row,idx)=> setStars(row.querySelector('.stars'), DAY.meals[keys[idx]]||0));
@@ -362,6 +374,8 @@ ctx.stroke(); ctx.restore();
 // ===== Boot =====
 async function bootstrap(){
   const { data:{ session } } = await supabase.auth.getSession(); SESSION=session; USER=session?.user||null;
+  // garante que scoreSono inicial não herde cache visual antigo
+  const el = document.getElementById('scoreSono'); if(el && typeof el.textContent==='string' && /[()]/.test(el.textContent)) el.textContent = '0 / 25';
   supabase.auth.onAuthStateChange((_e,s)=>{ SESSION=s; USER=s?.user||null; gate(); });
   renderMeals(); attachEvents(); update(); gate();
 }
