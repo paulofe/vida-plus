@@ -170,8 +170,8 @@ function attachEvents(){
   function setStatus(mode){
     if(!status) return;
     status.classList.remove('saving','saved');
-    if(mode==='saving'){ status.textContent='salvando…'; status.classList.add('saving'); status.style.opacity='0.75'; }
-    if(mode==='saved'){  status.textContent='salvo ✓';   status.classList.add('saved');  status.style.opacity='0.75'; setTimeout(()=>status.style.opacity='0', 900); }
+    if(mode==='saving'){ status.textContent=''; status.classList.add('saving'); status.style.opacity='0.75'; }
+    if(mode==='saved'){  status.textContent='';   status.classList.add('saved');  status.style.opacity='0.75'; setTimeout(()=>status.style.opacity='0', 900); }
   }
 
   async function doSave(val){
