@@ -164,6 +164,7 @@ h1{ font-size:22px; }                 /* você já tinha */
 
 /* Sono — alinhamentos e estilos */
 #secSono .row:first-child{ margin-bottom: 12px; }
+#secSono .sonoHead{ display:flex; justify-content:space-between; align-items:center; }
 #secSono .sleepRow{ gap:14px; align-items:flex-start; }
 #secSono #sleepHours{ width: 80px; }
 #secSono #sleepMetaHint{ color: var(--muted); }
@@ -240,7 +241,7 @@ h1{ font-size:22px; }                 /* você já tinha */
 
   <!-- Sono -->
   <section id="secSono">
-    <div class="row"><div><strong>😴 Sono</strong></div><span id="scoreSono" class="scoreSonoPill right">0 / 25</span></div>
+    <div class="row sonoHead"><div><strong>😴 Sono</strong></div><span id="scoreSono" class="scoreSonoPill">0 / 25</span></div>
     <div class="row sleepRow">
       <div class="col">
         <input id="sleepHours" type="number" step="0.1" placeholder="ex: 6.5">
