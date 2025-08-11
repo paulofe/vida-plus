@@ -2,6 +2,8 @@
 const supabase = window.supabase.createClient(window.SUPABASE_URL, window.SUPABASE_ANON);
 const $ = (q)=>document.querySelector(q), $$=(q)=>document.querySelectorAll(q);
 const months=['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'], wd=['dom','seg','ter','qua','qui','sex','sáb'];
+const monthsFull=['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
+const wdFull=['domingo','segunda','terça','quarta','quinta','sexta','sábado'];
 const fmtDateStr = (d)=>{ const z=new Date(d), y=z.getFullYear(), m=('0'+(z.getMonth()+1)).slice(-2), dd=('0'+z.getDate()).slice(-2); return `${y}-${m}-${dd}`; };
 
 // Formatador para label do topo (usa string YYYY-MM-DD; cria Date apenas para weekday, em meio-dia local)
@@ -31,16 +33,34 @@ function defaultDay(){
 // ===== Top =====
 function renderTop(){
   $('#scoreTop').textContent = DAY.score||0;
-  $('#streakNum').textContent = computeStreak(ALL_ROWS);
-  const label = fmtDateLabel(currentYmd);
-  // label vem como 11/ago (seg)
+  // Data no topo (esquerda)
   const dmEl = document.getElementById('dateDayMonth');
   const wdEl = document.getElementById('dateWeekday');
   if(dmEl && wdEl){
-    const m = label.match(/^(\d{2}\/[^ ]+)/); // parte do dia/mes
-    const w = label.match(/\(([^)]+)\)/);     // weekday entre parênteses
-    dmEl.textContent = m? m[1] : label;
-    wdEl.textContent = w? w[1] : '';
+    if(typeof currentYmd==='string' && /^\d{4}-\d{2}-\d{2}$/.test(currentYmd)){
+      const [y,m,d]=currentYmd.split('-').map(Number);
+      const dt = new Date(y, m-1, d, 12, 0, 0, 0);
+      dmEl.textContent = String(d).padStart(2,'0')+' '+monthsFull[m-1];
+      wdEl.textContent = wdFull[dt.getDay()];
+    } else {
+      dmEl.textContent = '—'; wdEl.textContent='';
+    }
+  }
+  // Streak abaixo do topo
+  const streakVal = computeStreak(ALL_ROWS);
+  const iconsEl = document.getElementById('streakIcons');
+  const textEl  = document.getElementById('streakText');
+  if(iconsEl && textEl){
+    if(!streakVal){ iconsEl.textContent=''; textEl.textContent=''; }
+    else if(streakVal<=6){ iconsEl.textContent = '🔥'.repeat(streakVal); textEl.textContent=''; }
+    else { iconsEl.textContent='🔥'; textEl.textContent=' x '+streakVal; }
+  } else {
+    const barWrap = document.querySelector('.streakBar .wrap');
+    if(barWrap){
+      let html='';
+      if(streakVal>0){ html = (streakVal<=6) ? '🔥'.repeat(streakVal) : ('🔥 x '+streakVal); }
+      barWrap.innerHTML = html;
+    }
   }
 }
 
