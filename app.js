@@ -65,10 +65,55 @@ function scoreAll(){
 function paint(){
   // topo
   renderTop();
-  // peso
-  $('#pesoMeta').textContent='Meta: '+(CFG.goal?CFG.goal+' kg':'—');
-  const y=localStorage.getItem('lastWeight'); $('#pesoYesterday').textContent='Ontem: '+(y?Number(y)+' kg':'—');
-  if(y && DAY.weight!=null){ const diff=(DAY.weight-Number(y)).toFixed(1); const cls=diff<0?'good':(diff>0?'bad':'warn'); $('#pesoDiff').innerHTML=`<span class="${cls}">${diff>0?'+':''}${diff} kg</span>`; } else $('#pesoDiff').textContent='';
+// peso
+(function(){
+  // Meta
+  const goalVal = (CFG.goal!=null && CFG.goal!=='') ? Number(CFG.goal) : null;
+  const metaEl  = $('#pesoMeta');
+  if(goalVal==null){
+    metaEl.textContent = 'Meta: —';
+  }else{
+    let faltaTxt = '';
+    if (DAY.weight!=null){
+      const falta = (goalVal - Number(DAY.weight));
+      const abs   = Math.abs(falta).toFixed(1);
+      // só informativo, sempre cinza discreto (estilo hint)
+      faltaTxt = ` (${abs} kg para chegar)`;
+    }
+    metaEl.textContent = `Meta: ${goalVal} kg${faltaTxt}`;
+  }
+
+  // Ontem = última medição anterior no histórico
+  let ontemVal = null;
+  // ALL_ROWS está do mais novo -> mais antigo
+  for (let i=0;i<ALL_ROWS.length;i++){
+    const r = ALL_ROWS[i];
+    if (r.date === DAY.date){
+      const next = ALL_ROWS[i+1];
+      if(next && next.data && next.data.weight!=null) ontemVal = Number(next.data.weight);
+      break;
+    }
+  }
+  if(ontemVal==null){
+    const y = localStorage.getItem('lastWeight');
+    if(y!=null) ontemVal = Number(y);
+  }
+
+  const yEl = $('#pesoYesterday');
+  if(ontemVal==null){
+    yEl.textContent = 'Ontem: —';
+  }else if(DAY.weight==null){
+    yEl.textContent = `Ontem: ${ontemVal.toFixed(1)} kg`;
+  }else{
+    const diff = Number(DAY.weight) - Number(ontemVal);
+    let cls = 'warn';
+    if (diff < 0) cls = 'good';
+    else if (diff > 0) cls = 'bad';
+    // Ontem com variação colorida (verde ↓, vermelho ↑, amarelo =)
+    yEl.innerHTML = `Ontem: ${ontemVal.toFixed(1)} kg <span class="${cls}">(${diff>0?'+':''}${diff.toFixed(1)} kg)</span>`;
+  }
+})();
+
   // sono
   setStars($('#sleepStars'), DAY.sleep.quality||0);
   // refeições
@@ -87,8 +132,6 @@ function paint(){
 
 // ===== Eventos =====
 function attachEvents(){
-  // Peso
-  $('#btnPesoOk').addEventListener('click', async()=>{ const v=parseFloat($('#pesoHoje').value); if(!isNaN(v)){ DAY.weight=v; localStorage.setItem('lastWeight',String(v)); await saveDay(); update(); }});
   // Sono
   $('#sleepHours').addEventListener('change', async e=>{ DAY.sleep.hours=parseFloat(e.target.value)||0; await saveDay(); update(); });
   $('#sleepStars').querySelectorAll('.star').forEach((s,idx)=> s.addEventListener('click', async()=>{ DAY.sleep.quality=idx+1; await saveDay(); update(); }));
@@ -114,6 +157,44 @@ function attachEvents(){
   });
   $('#btnSignOut').addEventListener('click', async()=>{ await supabase.auth.signOut(); location.reload(); });
 }
+
+// === Autosave do PESO (debounce + blur + Enter) ===
+(function(){
+  const input  = document.getElementById('pesoHoje');
+  const status = document.getElementById('pesoSaveStatus');
+  if(!input) return;
+
+  let lastSaved = DAY.weight;   // evita salvar se não mudou
+  let t;
+
+  function setStatus(mode){
+    if(!status) return;
+    status.classList.remove('saving','saved');
+    if(mode==='saving'){ status.textContent='salvando…'; status.classList.add('saving'); status.style.opacity='0.75'; }
+    if(mode==='saved'){  status.textContent='salvo ✓';   status.classList.add('saved');  status.style.opacity='0.75'; setTimeout(()=>status.style.opacity='0', 900); }
+  }
+
+  async function doSave(val){
+    const num = parseFloat(String(val).replace(',','.'));
+    if(Number.isNaN(num)) return;                     // ignora inválido
+    if(lastSaved!=null && Number(lastSaved)===num) return; // não mudou
+    DAY.weight = num;
+    localStorage.setItem('lastWeight', String(num));  // fallback p/ ontem
+    setStatus('saving');
+    await saveDay();
+    lastSaved = num;
+    update();                                        // repinta tudo
+    setStatus('saved');
+  }
+
+  function debounced(){ clearTimeout(t); t = setTimeout(()=>doSave(input.value), 600); }
+
+  input.addEventListener('input',   debounced);
+  input.addEventListener('blur',    ()=> doSave(input.value));
+  input.addEventListener('keydown', (e)=>{ if(e.key==='Enter'){ e.preventDefault(); doSave(input.value); } });
+})();
+
+
 
 // ===== Config =====
 function readCfgFromUI(){
