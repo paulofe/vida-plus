@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
-<title>9x9 • Múltiplos de 9 v2.6</title>
+<title>9x9 • Múltiplos de 9 v2.7</title>
 <style>
   :root { color-scheme: dark; }
   html,body{margin:0;height:100%;background:#0d0f12;color:#e8e8e8;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial}
@@ -25,7 +25,7 @@
 
 <div id="top" class="overlay">
   <div style="display:flex;align-items:center;">
-    <div id="title">9x9 • Múltiplos de 9</div><div id="ver">v2.6</div>
+    <div id="title">9x9 • Múltiplos de 9</div><div id="ver">v2.7</div>
   </div>
   <div class="hud">
     <span class="pill">Soma: <b id="sum">0</b></span>
@@ -40,7 +40,7 @@
 <div id="win"><div class="card">🎉 Vitória! Toque/Click para recomeçar</div></div>
 
 <script type="module">
-// ===== v2.6 — colisão lateral só pela célula da mesma linha; vertical→horizontal =====
+// ===== v2.7 — piso "de baixo pra cima" (raio vertical) + colisão por célula da mesma linha =====
 const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d', { alpha:false });
 const sumEl = document.getElementById('sum'), modEl = document.getElementById('mod');
@@ -86,8 +86,8 @@ function origin(){
 }
 function rect(r,c){const s=cellSize(),{x0,y0}=origin();const x=x0+c*s,y=y0+r*s;return{x,y,w:s,h:s,cx:x+s/2,cy:y+s/2}}
 function p2c(px,py){const {x0,y0,size}=origin();const s=cellSize();if(px<x0||py<y0||px>=x0+size||py>=y0+size)return null;const c=Math.floor((px-x0)/s),r=Math.floor((py-y0)/s);return inB(r,c)?{r,c}:null}
-// viés pequeno para baixo: evita pegar a linha de cima quando está exatamente no limite
-const rowAtY=(yBottom)=>{const {y0}=origin(); const s=cellSize(); return Math.max(0,Math.min(GRID-1, Math.floor(((yBottom - y0) - 0.001)/s)));};
+// leve viés p/ baixo pra evitar pegar a linha de cima quando no limite
+const rowAtY=(yBottom)=>{const {y0}=origin(); const s=cellSize(); return Math.max(0,Math.min(GRID-1, Math.floor(((yBottom - y0) + 0.001)/s)));};
 
 // ---------- base game ----------
 function initGrid(){
@@ -116,24 +116,29 @@ function commit(){
 function hud(){sumEl.textContent=S.sum;modEl.textContent=S.sum%9;countEl.textContent=S.selected.length;removedEl.textContent=S.removed}
 
 // ---------- bola ----------
-function floorY(col){
+const colAtX=x=>{const {x0}=origin(); const s=cellSize(); return Math.max(0,Math.min(GRID-1,Math.floor((x-x0)/s)))}
+
+/* Piso correto: primeiro bloco A PARTIR da linha da bola (para baixo) */
+function floorYFrom(col, yBottom){
   const {y0}=origin(); const s=cellSize();
-  for(let r=0;r<GRID;r++) if(S.grid[r][col]!==0) return y0 + r*s;
-  return y0 + GRID*s;
+  let r = rowAtY(yBottom);                      // linha onde está a base da bola
+  while (r < GRID && S.grid[r][col] === 0) r++; // procura o primeiro ocupado abaixo
+  return y0 + r*s;                               // se r==GRID -> fundo do tabuleiro
 }
+
 function placeBall(first=false){
   const {x0,size}=origin(); const s=cellSize();
   S.ball.r=Math.max(10,Math.floor(s*0.35));
   const startCol=Math.floor(GRID/2);
   S.ball.x = x0 + (startCol+0.5)*s;
-  S.ball.y = floorY(startCol) - S.ball.r; // já apoiada
+  // já nasce encostada no "piso a partir da sua altura"
+  S.ball.y = floorYFrom(startCol, (origin().y0 - 10)) - S.ball.r;
   const speed = Math.max(65, s*3.0);
   S.ball.vx = (first?1:(S.ball.vx>=0?1:-1)) * speed;
   S.ball.vy = 0;
 }
-const colAtX=x=>{const {x0}=origin(); const s=cellSize(); return Math.max(0,Math.min(GRID-1,Math.floor((x-x0)/s)))}
 
-// Física: 1) vertical 2) horizontal com colisão SÓ se a célula da mesma linha na coluna de destino estiver ocupada
+// Física: 1) vertical (usando floorYFrom)  2) horizontal (colisão só se célula-alvo MESMA LINHA ocupada)
 function updateBall(dt){
   if(S.win) return;
   const g=Math.max(1100, cellSize()*110);
@@ -143,9 +148,9 @@ function updateBall(dt){
   S.ball.vy += g*dt;
   let nextY = S.ball.y + S.ball.vy*dt;
   const c0 = colAtX(S.ball.x);
-  const floor0 = floorY(c0);
+  const floor0 = floorYFrom(c0, nextY + S.ball.r); // usa a posição proposta
   let onFloor = false;
-  if(nextY + S.ball.r >= floor0){
+  if(nextY + S.ball.r >= floor0 - 0.5){
     nextY = floor0 - S.ball.r;
     S.ball.vy = 0;
     onFloor = true;
