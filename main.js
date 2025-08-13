@@ -6,10 +6,12 @@ const modEl = document.getElementById('mod');
 const countEl = document.getElementById('count');
 const removedEl = document.getElementById('removed');
 const btnRestart = document.getElementById('btnRestart');
+const hdr = document.getElementById('hdr');
+const ftr = document.getElementById('ftr');
 
 const GRID = 9;
 const VALUES = { min: 1, max: 8 };
-const PADDING = 24; // padding ao redor do grid
+const PADDING = 24; // padding interno ao redor do grid
 
 // Estado
 const state = {
@@ -18,7 +20,6 @@ const state = {
   removed: 0,
   sum: 0,
   dragging: false,
-  lastPt: null,
 };
 
 function randInt(a, b){ return Math.floor(a + Math.random()*(b-a+1)); }
@@ -44,7 +45,7 @@ function isEmpty(r,c){ return state.grid[r][c] === 0; }
 
 function cellSize(){
   const usable = Math.min(canvas.width, canvas.height) - PADDING*2;
-  return Math.floor(usable / GRID);
+  return Math.max(8, Math.floor(usable / GRID));
 }
 
 function cellRect(r,c){
@@ -71,7 +72,7 @@ function pointToCell(px, py){
 function areAdj(a,b){
   const dr = Math.abs(a.r - b.r);
   const dc = Math.abs(a.c - b.c);
-  return (dr + dc === 1); // apenas ortogonal
+  return (dr + dc === 1);
 }
 
 function alreadySelected(rc){
@@ -85,7 +86,7 @@ function tryAddToSelection(rc){
     state.sum += state.grid[rc.r][rc.c];
   } else {
     const last = state.selected[state.selected.length-1];
-    // backtrack (voltar um passo) se tocar no penúltimo
+    // backtrack se tocar no penúltimo
     if (state.selected.length >= 2){
       const prev = state.selected[state.selected.length-2];
       if (prev.r===rc.r && prev.c===rc.c){
@@ -126,19 +127,46 @@ function syncHud(){
   removedEl.textContent = state.removed;
 }
 
+/* ====== NOVO: resize que garante caber 100% no mobile ====== */
+function getViewportHeight(){
+  // usa visualViewport se disponível (iOS/Android considera barras dinâmicas)
+  return (window.visualViewport && window.visualViewport.height) || window.innerHeight;
+}
+
+function elementOuterHeight(el){
+  const cs = getComputedStyle(el);
+  return el.offsetHeight
+    + parseFloat(cs.marginTop || 0)
+    + parseFloat(cs.marginBottom || 0);
+}
+
 function resize(){
-  // Canvas quadrado que se ajusta ao viewport
   const dpr = Math.max(1, Math.floor(window.devicePixelRatio || 1));
+
+  const vh = getViewportHeight();                 // altura real disponível
+  const headerH = elementOuterHeight(hdr);
+  const footerH = elementOuterHeight(ftr);
+  const safeBottom = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('env(safe-area-inset-bottom)')) || 0;
+
+  // Espaço máximo para o canvas como quadrado: toda a largura menos margens
   const vw = Math.min(window.innerWidth, 1024);
-  const vh = window.innerHeight - 120; // header/footer aprox
-  const sizeCSS = Math.min(vw - 24, vh - 24);
+  // Altura útil descontando header/footer/safe area e um pequeno respiro
+  const availableH = Math.max(120, vh - headerH - footerH - safeBottom - 8);
+  const availableW = vw - 8;
+
+  const sizeCSS = Math.max(140, Math.min(availableW, availableH)); // mínimo razoável
+
+  // aplica tamanho CSS e buffer para DPR
   canvas.style.width = sizeCSS + 'px';
   canvas.style.height = sizeCSS + 'px';
-  canvas.width = Math.floor(sizeCSS * dpr);
+  canvas.width  = Math.floor(sizeCSS * dpr);
   canvas.height = Math.floor(sizeCSS * dpr);
+
   draw();
 }
 addEventListener('resize', resize);
+if (window.visualViewport) window.visualViewport.addEventListener('resize', resize);
+/* =========================================================== */
 
 function draw(){
   const dpr = Math.max(1, Math.floor(window.devicePixelRatio || 1));
@@ -181,11 +209,9 @@ function draw(){
 
       // valor
       if (val !== 0){
-        // paleta por valor
         ctx.fillStyle = ['','#a6e3a1','#94e2d5','#89b4fa','#f9e2af','#fab387','#eba0ac','#cba6f7','#f38ba8'][val];
         ctx.fillText(String(val), cx, cy);
       } else {
-        // pontinho para vazio
         ctx.fillStyle = 'rgba(255,255,255,.06)';
         ctx.beginPath();
         ctx.arc(cx, cy, Math.max(2, size*0.04), 0, Math.PI*2);
@@ -194,7 +220,7 @@ function draw(){
     }
   }
 
-  // linha ligando a seleção
+  // linha da seleção
   if (state.selected.length>0){
     ctx.strokeStyle = 'rgba(255,255,255,.35)';
     ctx.lineWidth = Math.max(2, size*0.06);
@@ -218,7 +244,7 @@ function draw(){
   ctx.restore();
 }
 
-// Input (mouse + touch)
+// Input (mouse + touch) — conversão usa CSS px -> canvas px -> dpr
 function getCanvasPoint(evt){
   const rect = canvas.getBoundingClientRect();
   let x, y;
@@ -237,7 +263,6 @@ function getCanvasPoint(evt){
 }
 
 function pointToCellDpr(pt){
-  // converte ponto em px do canvas para célula (considerando dpr)
   const dpr = Math.max(1, Math.floor(window.devicePixelRatio || 1));
   return pointToCell(pt.x / dpr, pt.y / dpr);
 }
