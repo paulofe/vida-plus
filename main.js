@@ -1,4 +1,4 @@
-// 9x9 board game — conecte vizinhos ortogonais; se sum % 9 === 0, remove seleção (sem gravidade)
+// v1.3 — mobile fit agressivo + versão visível no header
 const canvas = document.getElementById('c');
 const ctx = canvas.getContext('2d');
 const sumEl = document.getElementById('sum');
@@ -13,10 +13,9 @@ const GRID = 9;
 const VALUES = { min: 1, max: 8 };
 const PADDING = 24; // padding interno ao redor do grid
 
-// Estado
 const state = {
-  grid: [],          // número ou 0 (vazio)
-  selected: [],      // [{r,c}]
+  grid: [],
+  selected: [],
   removed: 0,
   sum: 0,
   dragging: false,
@@ -86,12 +85,12 @@ function tryAddToSelection(rc){
     state.sum += state.grid[rc.r][rc.c];
   } else {
     const last = state.selected[state.selected.length-1];
-    // backtrack se tocar no penúltimo
     if (state.selected.length >= 2){
       const prev = state.selected[state.selected.length-2];
       if (prev.r===rc.r && prev.c===rc.c){
         const popped = state.selected.pop();
         state.sum -= state.grid[popped.r][popped.c];
+        syncHud(); draw();
         return;
       }
     }
@@ -108,7 +107,7 @@ function commitIfValid(){
   if (state.sum % 9 === 0){
     for (const p of state.selected){
       if (state.grid[p.r][p.c] !== 0){
-        state.grid[p.r][p.c] = 0; // remove
+        state.grid[p.r][p.c] = 0;
         state.removed++;
       }
     }
@@ -127,13 +126,17 @@ function syncHud(){
   removedEl.textContent = state.removed;
 }
 
-/* ====== NOVO: resize que garante caber 100% no mobile ====== */
+/* ====== FIT MOBILE V1.3 ====== */
 function getViewportHeight(){
-  // usa visualViewport se disponível (iOS/Android considera barras dinâmicas)
-  return (window.visualViewport && window.visualViewport.height) || window.innerHeight;
+  // prioriza visualViewport (iOS/Android com barras dinâmicas)
+  const vv = window.visualViewport;
+  if (vv && vv.height) return vv.height;
+  // 100dvh fallback (onde suportado, via CSS já minimiza)
+  return window.innerHeight || document.documentElement.clientHeight || 600;
 }
 
 function elementOuterHeight(el){
+  if (!el) return 0;
   const cs = getComputedStyle(el);
   return el.offsetHeight
     + parseFloat(cs.marginTop || 0)
@@ -142,21 +145,19 @@ function elementOuterHeight(el){
 
 function resize(){
   const dpr = Math.max(1, Math.floor(window.devicePixelRatio || 1));
-
-  const vh = getViewportHeight();                 // altura real disponível
+  const vh = getViewportHeight();
   const headerH = elementOuterHeight(hdr);
   const footerH = elementOuterHeight(ftr);
   const safeBottom = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('env(safe-area-inset-bottom)')) || 0;
 
-  // Espaço máximo para o canvas como quadrado: toda a largura menos margens
-  const vw = Math.min(window.innerWidth, 1024);
-  // Altura útil descontando header/footer/safe area e um pequeno respiro
-  const availableH = Math.max(120, vh - headerH - footerH - safeBottom - 8);
-  const availableW = vw - 8;
+  // largura disponível (limita em 1024 pra desktop)
+  const vw = Math.min(window.innerWidth || 1024, 1024);
+  const availableH = Math.max(140, vh - headerH - footerH - safeBottom - 6);
+  const availableW = Math.max(140, vw - 6);
 
-  const sizeCSS = Math.max(140, Math.min(availableW, availableH)); // mínimo razoável
+  const sizeCSS = Math.min(availableW, availableH);
 
-  // aplica tamanho CSS e buffer para DPR
+  // aplica CSS e buffer de DPR
   canvas.style.width = sizeCSS + 'px';
   canvas.style.height = sizeCSS + 'px';
   canvas.width  = Math.floor(sizeCSS * dpr);
@@ -164,9 +165,15 @@ function resize(){
 
   draw();
 }
+
 addEventListener('resize', resize);
 if (window.visualViewport) window.visualViewport.addEventListener('resize', resize);
-/* =========================================================== */
+
+// Observa mudanças de altura em header/footer (quebras de linha no HUD, etc.)
+const ro = new ResizeObserver(() => resize());
+ro.observe(hdr);
+ro.observe(ftr);
+/* ============================== */
 
 function draw(){
   const dpr = Math.max(1, Math.floor(window.devicePixelRatio || 1));
@@ -174,20 +181,16 @@ function draw(){
   ctx.scale(dpr, dpr);
   const w = canvas.width / dpr, h = canvas.height / dpr;
 
-  // fundo
   ctx.fillStyle = '#0b0d11';
   ctx.fillRect(0,0,w,h);
 
-  // grid
   const size = cellSize();
   const x0 = Math.floor((w - size*GRID)/2);
   const y0 = Math.floor((h - size*GRID)/2);
 
-  // placa do tabuleiro
   ctx.fillStyle = '#0f1318';
   ctx.fillRect(x0-4, y0-4, size*GRID+8, size*GRID+8);
 
-  // células
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   ctx.font = Math.floor(size*0.42) + 'px system-ui';
@@ -198,16 +201,13 @@ function draw(){
     for (let c=0;c<GRID;c++){
       const val = state.grid[r][c];
       const {x,y,w:sw,h:sh,cx,cy} = cellRect(r,c);
-      // fundo da célula
       ctx.fillStyle = isSel(r,c) ? '#214367' : (val===0 ? '#141920' : '#151b23');
       ctx.fillRect(x+1, y+1, sw-2, sh-2);
 
-      // borda
       ctx.strokeStyle = '#243041';
       ctx.lineWidth = 1;
       ctx.strokeRect(x+0.5, y+0.5, sw-1, sh-1);
 
-      // valor
       if (val !== 0){
         ctx.fillStyle = ['','#a6e3a1','#94e2d5','#89b4fa','#f9e2af','#fab387','#eba0ac','#cba6f7','#f38ba8'][val];
         ctx.fillText(String(val), cx, cy);
@@ -220,7 +220,6 @@ function draw(){
     }
   }
 
-  // linha da seleção
   if (state.selected.length>0){
     ctx.strokeStyle = 'rgba(255,255,255,.35)';
     ctx.lineWidth = Math.max(2, size*0.06);
@@ -235,7 +234,6 @@ function draw(){
     ctx.stroke();
   }
 
-  // dica
   ctx.fillStyle = 'rgba(255,255,255,.12)';
   ctx.font = '12px system-ui';
   ctx.textAlign = 'left';
@@ -244,7 +242,7 @@ function draw(){
   ctx.restore();
 }
 
-// Input (mouse + touch) — conversão usa CSS px -> canvas px -> dpr
+// input (mouse + touch) — mapeando px CSS -> px de canvas -> dpr
 function getCanvasPoint(evt){
   const rect = canvas.getBoundingClientRect();
   let x, y;
@@ -261,12 +259,10 @@ function getCanvasPoint(evt){
   const scaleY = canvas.height / cssH;
   return { x: x*scaleX, y: y*scaleY };
 }
-
 function pointToCellDpr(pt){
   const dpr = Math.max(1, Math.floor(window.devicePixelRatio || 1));
   return pointToCell(pt.x / dpr, pt.y / dpr);
 }
-
 function pointerDown(evt){
   evt.preventDefault();
   state.dragging = true;
@@ -274,18 +270,13 @@ function pointerDown(evt){
   const cell = pointToCellDpr(pt);
   if (cell) { clearSelection(); tryAddToSelection(cell); draw(); }
 }
-
 function pointerMove(evt){
   if (!state.dragging) return;
   evt.preventDefault();
   const pt = getCanvasPoint(evt);
   const cell = pointToCellDpr(pt);
-  if (cell){
-    tryAddToSelection(cell);
-    draw();
-  }
+  if (cell){ tryAddToSelection(cell); draw(); }
 }
-
 function pointerUp(evt){
   if (!state.dragging) return;
   evt.preventDefault();
@@ -293,20 +284,15 @@ function pointerUp(evt){
   commitIfValid();
   draw();
 }
-
 canvas.addEventListener('mousedown', pointerDown);
 canvas.addEventListener('mousemove', pointerMove);
 addEventListener('mouseup', pointerUp);
-
 canvas.addEventListener('touchstart', pointerDown, {passive:false});
 canvas.addEventListener('touchmove', pointerMove, {passive:false});
 canvas.addEventListener('touchend', pointerUp, {passive:false});
 
 btnRestart.addEventListener('click', initGrid);
 
-// Boot
-function boot(){
-  resize();
-  initGrid();
-}
+// boot
+function boot(){ resize(); initGrid(); }
 boot();
