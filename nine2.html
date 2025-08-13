@@ -1,0 +1,396 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
+<title>9x9 • Múltiplos de 9 v2.0 — Fase 2</title>
+<style>
+  :root { color-scheme: dark; }
+  html,body { margin:0; height:100%; background:#0d0f12; color:#e8e8e8; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial; }
+  /* Canvas ocupa a viewport dinâmica inteira; HUD é overlay e não “empurra” o canvas */
+  #game { display:block; width:100vw; height:100dvh; background:#0a0c0f; touch-action:none; }
+  .overlay {
+    position:fixed; left:0; right:0; z-index:10; pointer-events:auto;
+    padding:6px 10px; background:#121418cc; backdrop-filter:saturate(120%) blur(6px);
+    border-bottom:1px solid #1f232a;
+  }
+  #top { top:0; display:flex; align-items:center; justify-content:space-between; gap:10px; }
+  #bottom { bottom:0; border-top:1px solid #1f232a; border-bottom:none; padding-bottom:calc(6px + env(safe-area-inset-bottom,0)); text-align:center; font-size:12px; opacity:.9; }
+  .hud { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+  .pill { background:#171a20; border:1px solid #2a2f39; border-radius:999px; padding:3px 8px; font-variant-numeric: tabular-nums; }
+  #title { font-weight:600; }
+  #ver { opacity:.8; font-size:12px; padding-left:6px; }
+  button { background:#1f6feb; color:#fff; border:0; border-radius:8px; padding:6px 10px; cursor:pointer; }
+  button:active { filter:brightness(.9) }
+  @media (min-width: 960px){
+    #top,#bottom { left:50%; right:auto; transform:translateX(-50%); width:min(1024px, 100vw); }
+  }
+</style>
+</head>
+<body>
+
+<canvas id="game" width="960" height="960" aria-label="Tabuleiro 9x9"></canvas>
+
+<div id="top" class="overlay">
+  <div style="display:flex; align-items:center;">
+    <div id="title">9x9 • Múltiplos de 9</div><div id="ver">v2.0</div>
+  </div>
+  <div class="hud">
+    <span class="pill">Soma: <b id="sum">0</b></span>
+    <span class="pill">Soma % 9: <b id="mod">0</b></span>
+    <span class="pill">Sel.: <b id="count">0</b></span>
+    <span class="pill">Remov.: <b id="removed">0</b></span>
+    <button id="restart">Reiniciar</button>
+  </div>
+</div>
+
+<div id="bottom" class="overlay">
+  Fase 2: blocos em “3D” + bolinha com gravidade. A regra de remover múltiplos de 9 continua valendo.
+</div>
+
+<script type="module">
+// ============ v2.0 — Fase 2 (3D fake + bolinha com gravidade) ============
+const canvas = document.getElementById('game');
+const ctx = canvas.getContext('2d', { alpha:false });
+
+const sumEl = document.getElementById('sum');
+const modEl = document.getElementById('mod');
+const countEl = document.getElementById('count');
+const removedEl = document.getElementById('removed');
+const btnRestart = document.getElementById('restart');
+const topBar = document.getElementById('top');
+const bottomBar = document.getElementById('bottom');
+
+const GRID = 9;
+const VALUES = { min:1, max:8 };
+const PADDING = 20; // margem interna em volta do tabuleiro
+
+// Paleta por valor (topo do bloco)
+const VAL = ['',
+  '#a6e3a1','#94e2d5','#89b4fa','#f9e2af','#fab387','#eba0ac','#cba6f7','#f38ba8'
+];
+
+const state = {
+  grid: [],
+  selected: [],
+  removed: 0,
+  sum: 0,
+  dragging: false,
+  // bola
+  ball: { x:0, y:0, r:14, vx:160, vy:0 } // velocidades em px/s
+};
+
+// ---------------- helpers ----------------
+const randInt = (a,b)=> Math.floor(a + Math.random()*(b-a+1));
+const inBounds = (r,c)=> r>=0 && r<GRID && c>=0 && c<GRID;
+const isEmpty  = (r,c)=> state.grid[r][c] === 0;
+const areAdj   = (a,b)=> Math.abs(a.r-b.r) + Math.abs(a.c-b.c) === 1;
+const selectedHas = (r,c)=> state.selected.some(p=>p.r===r && p.c===c);
+
+function safeHeights(){
+  const topH = topBar.getBoundingClientRect().height;
+  const botH = bottomBar.getBoundingClientRect().height;
+  return { topH, botH };
+}
+function cssViewport(){
+  const vv = window.visualViewport;
+  return { w:(vv?.width)||window.innerWidth, h:(vv?.height)||window.innerHeight };
+}
+function resize(){
+  const { w, h } = cssViewport();
+  const dpr = Math.max(1, Math.floor(window.devicePixelRatio||1));
+  canvas.style.width = w+'px'; canvas.style.height = h+'px';
+  canvas.width = Math.floor(w*dpr); canvas.height = Math.floor(h*dpr);
+}
+
+function cellSize(){
+  const dpr = Math.max(1, Math.floor(window.devicePixelRatio||1));
+  const w = canvas.width/dpr, h = canvas.height/dpr;
+  const { topH, botH } = safeHeights();
+  const usableW = w - PADDING*2;
+  const usableH = h - topH - botH - PADDING*2;
+  return Math.max(8, Math.floor(Math.min(usableW, usableH)/GRID));
+}
+function boardOrigin(){
+  const dpr = Math.max(1, Math.floor(window.devicePixelRatio||1));
+  const w = canvas.width/dpr, h = canvas.height/dpr;
+  const { topH, botH } = safeHeights();
+  const s = cellSize()*GRID;
+  const x0 = Math.floor((w - s)/2);
+  const y0 = Math.floor((h - topH - botH - s)/2) + topH;
+  return { x0, y0, size:s };
+}
+function cellRect(r,c){
+  const s = cellSize(); const { x0, y0 } = boardOrigin();
+  const x = x0 + c*s, y = y0 + r*s;
+  return { x, y, w:s, h:s, cx:x+s/2, cy:y+s/2 };
+}
+function pointToCell(px,py){
+  const { x0, y0, size } = boardOrigin(); const s = cellSize();
+  if (px<x0||py<y0||px>=x0+size||py>=y0+size) return null;
+  const c = Math.floor((px-x0)/s); const r = Math.floor((py-y0)/s);
+  return inBounds(r,c) ? { r,c } : null;
+}
+
+// ---------------- regras base ----------------
+function initGrid(){
+  state.grid = Array.from({length:GRID},()=> Array.from({length:GRID},()=> randInt(VALUES.min, VALUES.max)));
+  state.removed = 0; clearSelection(); placeBallAtTop(); syncHud();
+}
+function clearSelection(){ state.selected.length=0; state.sum=0; syncHud(); }
+function tryAddToSelection(rc){
+  if (!inBounds(rc.r,rc.c) || isEmpty(rc.r,rc.c)) return;
+  if (state.selected.length===0){ state.selected.push(rc); state.sum += state.grid[rc.r][rc.c]; }
+  else {
+    const last = state.selected[state.selected.length-1];
+    if (state.selected.length>=2){
+      const prev = state.selected[state.selected.length-2];
+      if (prev.r===rc.r && prev.c===rc.c){
+        const popped = state.selected.pop(); state.sum -= state.grid[popped.r][popped.c]; syncHud(); return;
+      }
+    }
+    if (areAdj(last, rc) && !selectedHas(rc.r, rc.c)){ state.selected.push(rc); state.sum += state.grid[rc.r][rc.c]; }
+  }
+  syncHud();
+}
+function commitIfValid(){
+  if (state.selected.length===0) return false;
+  if (state.sum % 9 === 0){
+    for (const p of state.selected){ if (state.grid[p.r][p.c]!==0){ state.grid[p.r][p.c]=0; state.removed++; } }
+    clearSelection(); return true;
+  } else { clearSelection(); return false; }
+}
+function syncHud(){
+  sumEl.textContent = state.sum;
+  modEl.textContent = state.sum % 9;
+  countEl.textContent = state.selected.length;
+  removedEl.textContent = state.removed;
+}
+
+// ---------------- bolinha (gravidade só nela) ----------------
+function placeBallAtTop(){
+  const { x0, y0, size } = boardOrigin(); const s = cellSize();
+  state.ball.r = Math.max(10, Math.floor(s*0.35));
+  state.ball.x = x0 + size/2;
+  state.ball.y = y0 - state.ball.r - 4; // acima do tabuleiro
+  state.ball.vx = Math.sign(state.ball.vx||1) || 1; // direção preservada
+  state.ball.vx *= Math.max(100, s*6.5);
+  state.ball.vy = 0;
+}
+function columnAtX(x){
+  const { x0 } = boardOrigin(); const s = cellSize();
+  const col = Math.floor((x - x0)/s);
+  return Math.max(0, Math.min(GRID-1, col));
+}
+function floorYUnderBall(x){
+  const { y0 } = boardOrigin(); const s = cellSize();
+  const col = columnAtX(x);
+  // procura o 1º bloco NÃO vazio de cima para baixo
+  for (let r=0; r<GRID; r++){
+    if (state.grid[r][col] !== 0) return y0 + r*s; // topo do bloco
+  }
+  // sem blocos nessa coluna -> piso é o fundo do tabuleiro
+  return y0 + GRID*s;
+}
+function updateBall(dt){
+  const g = Math.max(1500, cellSize()*150); // gravidade px/s²
+  const { x0 } = boardOrigin(); const s = cellSize(); const boardW = s*GRID;
+
+  // movimento horizontal
+  state.ball.x += state.ball.vx * dt;
+
+  // quica nas bordas laterais do tabuleiro
+  if (state.ball.x - state.ball.r < x0){
+    state.ball.x = x0 + state.ball.r; state.ball.vx = Math.abs(state.ball.vx);
+  }
+  if (state.ball.x + state.ball.r > x0 + boardW){
+    state.ball.x = x0 + boardW - state.ball.r; state.ball.vx = -Math.abs(state.ball.vx);
+  }
+
+  // gravidade/colisão com "piso" dado pela coluna atual
+  const floor = floorYUnderBall(state.ball.x);
+  // aplica gravidade
+  state.ball.vy += g * dt;
+  state.ball.y += state.ball.vy * dt;
+
+  // se encostar no piso, gruda no topo e zera vy
+  if (state.ball.y + state.ball.r > floor){
+    state.ball.y = floor - state.ball.r;
+    state.ball.vy = 0;
+  }
+
+  // se o piso "subiu" (degrau), ajusta para cima mesmo sem queda
+  if (state.ball.y + state.ball.r > floor){
+    state.ball.y = floor - state.ball.r;
+  }
+}
+
+// ---------------- desenho ----------------
+function shade(hex, f){ // f<1 escurece, f>1 clareia
+  const n = parseInt(hex.slice(1),16);
+  let r=(n>>16)&255,g=(n>>8)&255,b=n&255;
+  r=Math.max(0,Math.min(255,Math.round(r*f)));
+  g=Math.max(0,Math.min(255,Math.round(g*f)));
+  b=Math.max(0,Math.min(255,Math.round(b*f)));
+  return `rgb(${r},${g},${b})`;
+}
+function drawBlocks3D(r,c,val,selected){
+  const { x,y,w:h } = cellRect(r,c); const s = h; // s = size
+  const d = Math.max(3, Math.floor(s*0.18)); // “altura” 3D
+  const top = selected ? '#2a5585' : '#151b23';
+  // topo colorido
+  const fillTop = val? VAL[val] : top;
+  // sombrear faces
+  const right = val? shade(VAL[val], 0.82) : '#10151b';
+  const bottom = val? shade(VAL[val], 0.70) : '#0c1116';
+
+  // TOP
+  ctx.fillStyle = fillTop;
+  ctx.fillRect(x+1, y+1, s-2, s-2);
+  // RIGHT FACE
+  ctx.fillStyle = right;
+  ctx.beginPath();
+  ctx.moveTo(x+s-1, y+1);
+  ctx.lineTo(x+s-1 + d, y+1 + d);
+  ctx.lineTo(x+s-1 + d, y+s-1 + d);
+  ctx.lineTo(x+s-1,   y+s-1);
+  ctx.closePath(); ctx.fill();
+  // BOTTOM FACE
+  ctx.fillStyle = bottom;
+  ctx.beginPath();
+  ctx.moveTo(x+1,   y+s-1);
+  ctx.lineTo(x+s-1, y+s-1);
+  ctx.lineTo(x+s-1 + d, y+s-1 + d);
+  ctx.lineTo(x+1 + d,   y+s-1 + d);
+  ctx.closePath(); ctx.fill();
+
+  // bordas sutis
+  ctx.strokeStyle = '#243041'; ctx.lineWidth = 1;
+  ctx.strokeRect(x+0.5, y+0.5, s-1, s-1);
+
+  // número no topo
+  if (val){
+    ctx.fillStyle = '#0b0d11cc';
+    ctx.font = Math.floor(s*0.44) + 'px system-ui';
+    ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText(String(val), x+s/2, y+s/2);
+  } else {
+    // vazio: pontinho de guia
+    ctx.fillStyle = 'rgba(255,255,255,.06)';
+    ctx.beginPath(); ctx.arc(x+s/2, y+s/2, Math.max(2, s*0.04), 0, Math.PI*2); ctx.fill();
+  }
+}
+
+function drawBall(){
+  const b = state.ball;
+  // sombra
+  ctx.fillStyle = 'rgba(0,0,0,.35)';
+  ctx.beginPath();
+  ctx.ellipse(b.x+4, b.y+b.r-2, b.r*0.9, b.r*0.35, 0, 0, Math.PI*2);
+  ctx.fill();
+
+  // esfera
+  const grad = ctx.createRadialGradient(b.x-b.r*0.35, b.y-b.r*0.35, b.r*0.2, b.x, b.y, b.r);
+  grad.addColorStop(0, '#e7f5ff');
+  grad.addColorStop(1, '#6aa2ff');
+  ctx.fillStyle = grad;
+  ctx.beginPath();
+  ctx.arc(b.x, b.y, b.r, 0, Math.PI*2);
+  ctx.fill();
+
+  // highlight
+  ctx.fillStyle = 'rgba(255,255,255,.6)';
+  ctx.beginPath();
+  ctx.arc(b.x-b.r*0.3, b.y-b.r*0.45, Math.max(2,b.r*0.25), 0, Math.PI*2);
+  ctx.fill();
+}
+
+function draw(){
+  const dpr = Math.max(1, Math.floor(window.devicePixelRatio||1));
+  ctx.save(); ctx.scale(dpr,dpr);
+  const w = canvas.width/dpr, h = canvas.height/dpr;
+  ctx.fillStyle = '#0b0d11'; ctx.fillRect(0,0,w,h);
+
+  const s = cellSize(); const { x0, y0 } = boardOrigin();
+
+  // painel do tabuleiro (fundo)
+  ctx.fillStyle = '#0f1318';
+  ctx.fillRect(x0-4, y0-4, s*GRID+8, s*GRID+8);
+
+  // desenha células
+  for (let r=0;r<GRID;r++){
+    for (let c=0;c<GRID;c++){
+      drawBlocks3D(r,c, state.grid[r][c], selectedHas(r,c));
+    }
+  }
+
+  // caminho da seleção
+  if (state.selected.length>0){
+    ctx.strokeStyle = 'rgba(255,255,255,.35)';
+    ctx.lineWidth = Math.max(2, s*0.06);
+    ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+    ctx.beginPath();
+    for (let i=0;i<state.selected.length;i++){
+      const {cx,cy} = cellRect(state.selected[i].r, state.selected[i].c);
+      if (i===0) ctx.moveTo(cx,cy); else ctx.lineTo(cx,cy);
+    }
+    ctx.stroke();
+  }
+
+  // bolinha
+  drawBall();
+
+  // dica
+  ctx.fillStyle = 'rgba(255,255,255,.12)'; ctx.font='12px system-ui'; ctx.textAlign='left';
+  ctx.fillText('Arraste para selecionar. Solte para validar.', x0, y0 - 10);
+
+  ctx.restore();
+}
+
+// ---------------- input ----------------
+function canvasPoint(evt){
+  const rect = canvas.getBoundingClientRect();
+  let x,y;
+  if (evt.touches?.length){ x = evt.touches[0].clientX - rect.left; y = evt.touches[0].clientY - rect.top; }
+  else { x = (evt.clientX ?? 0) - rect.left; y = (evt.clientY ?? 0) - rect.top; }
+  const cssW = rect.width, cssH = rect.height;
+  const scaleX = canvas.width/cssW, scaleY = canvas.height/cssH;
+  const px = x*scaleX, py = y*scaleY;
+  const dpr = Math.max(1, Math.floor(window.devicePixelRatio||1));
+  return { x:px/dpr, y:py/dpr };
+}
+function onDown(e){ e.preventDefault(); state.dragging=true; const pt=canvasPoint(e); const cell=pointToCell(pt.x,pt.y); if(cell){ clearSelection(); tryAddToSelection(cell); } }
+function onMove(e){ if(!state.dragging) return; e.preventDefault(); const pt=canvasPoint(e); const cell=pointToCell(pt.x,pt.y); if(cell){ tryAddToSelection(cell); } }
+function onUp(e){ if(!state.dragging) return; e.preventDefault(); state.dragging=false; commitIfValid(); }
+
+canvas.addEventListener('mousedown', onDown);
+canvas.addEventListener('mousemove', onMove);
+window.addEventListener('mouseup', onUp);
+canvas.addEventListener('touchstart', onDown, {passive:false});
+canvas.addEventListener('touchmove',  onMove, {passive:false});
+canvas.addEventListener('touchend',   onUp,   {passive:false});
+
+btnRestart.addEventListener('click', initGrid);
+
+// ---------------- loop ----------------
+let last = 0;
+function tick(t){
+  const dt = Math.min(0.05, (t - last)/1000 || 0); last = t;
+  updateBall(dt);
+  draw();
+  requestAnimationFrame(tick);
+}
+
+// reatividade de tamanho
+function doResize(){ resize(); placeBallAtTop(); draw(); }
+window.addEventListener('resize', doResize);
+if (window.visualViewport) window.visualViewport.addEventListener('resize', doResize);
+const ro = new ResizeObserver(()=> draw());
+ro.observe(topBar); ro.observe(bottomBar);
+
+// boot
+function boot(){ resize(); initGrid(); requestAnimationFrame(tick); }
+boot();
+</script>
+</body>
+</html>
