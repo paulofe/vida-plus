@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
-<title>9x9 • Múltiplos de 9 v3.1</title>
+<title>9x9 • Múltiplos de 9 v3.2</title>
 <style>
   :root { color-scheme: dark; }
   html,body{margin:0;height:100%;background:#0d0f12;color:#e8e8e8;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial}
@@ -25,7 +25,7 @@
 
 <div id="top" class="overlay">
   <div style="display:flex;align-items:center;">
-    <div id="title">9x9 • Múltiplos de 9</div><div id="ver">v3.1</div>
+    <div id="title">9x9 • Múltiplos de 9</div><div id="ver">v3.2</div>
   </div>
   <div class="hud">
     <span class="pill">Soma: <b id="sum">0</b></span>
@@ -40,7 +40,7 @@
 <div id="win"><div class="card">🎉 Vitória! Toque/Click para recomeçar</div></div>
 
 <script type="module">
-// ===== v3.1 — colisão lateral SOMENTE se célula-alvo da MESMA LINHA estiver ocupada =====
+// ===== v3.2 — corrige typo que quebrava o app; colisão lateral só pela célula da MESMA LINHA =====
 const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d', { alpha:false });
 const sumEl = document.getElementById('sum'), modEl = document.getElementById('mod');
@@ -113,13 +113,17 @@ function commit(){
   if(S.sum%9===0){for(const p of S.selected){if(S.grid[p.r][p.c]!==0){S.grid[p.r][p.c]=0;S.removed++;}} clearSel(); return true;}
   clearSel(); return false;
 }
-function hud(){sumEl.textContent=S.sum;modEl.textContent=S.sum%9;countEl.textContent=S.selected.length;removedEl.textContent=S.remov
-ed}
+function hud(){
+  sumEl.textContent = S.sum;
+  modEl.textContent = S.sum % 9;
+  countEl.textContent = S.selected.length;
+  removedEl.textContent = S.removed; // <- corrigido
+}
 
 // ---------- bola ----------
 const colAtX=x=>{const {x0}=origin(); const s=cellSize(); return Math.max(0,Math.min(GRID-1,Math.floor((x-x0)/s)))}
 
-/* Piso correto: primeiro bloco A PARTIR da linha da bola (para baixo) */
+/* Piso: primeiro bloco A PARTIR da linha da bola (para baixo) */
 function floorYFrom(col, yBottom){
   const {y0}=origin(); const s=cellSize();
   let r = rowAtY(yBottom);
