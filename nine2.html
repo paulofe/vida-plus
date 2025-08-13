@@ -3,11 +3,10 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
-<title>9x9 • Múltiplos de 9 v2.0 — Fase 2</title>
+<title>9x9 • Múltiplos de 9 v2.1 — Fase 2 (física corrigida)</title>
 <style>
   :root { color-scheme: dark; }
   html,body { margin:0; height:100%; background:#0d0f12; color:#e8e8e8; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial; }
-  /* Canvas ocupa a viewport dinâmica inteira; HUD é overlay e não “empurra” o canvas */
   #game { display:block; width:100vw; height:100dvh; background:#0a0c0f; touch-action:none; }
   .overlay {
     position:fixed; left:0; right:0; z-index:10; pointer-events:auto;
@@ -25,6 +24,16 @@
   @media (min-width: 960px){
     #top,#bottom { left:50%; right:auto; transform:translateX(-50%); width:min(1024px, 100vw); }
   }
+  /* badge de vitória */
+  #win {
+    position:fixed; inset:0; display:none; place-items:center; z-index:20;
+    background:linear-gradient(180deg, rgba(0,0,0,.0), rgba(0,0,0,.55));
+    pointer-events:none;
+  }
+  #win .card{
+    padding:14px 18px; border-radius:12px; background:#182026cc; border:1px solid #2a3140;
+    font-size:18px; box-shadow:0 10px 40px rgba(0,0,0,.4);
+  }
 </style>
 </head>
 <body>
@@ -33,7 +42,7 @@
 
 <div id="top" class="overlay">
   <div style="display:flex; align-items:center;">
-    <div id="title">9x9 • Múltiplos de 9</div><div id="ver">v2.0</div>
+    <div id="title">9x9 • Múltiplos de 9</div><div id="ver">v2.1</div>
   </div>
   <div class="hud">
     <span class="pill">Soma: <b id="sum">0</b></span>
@@ -45,11 +54,13 @@
 </div>
 
 <div id="bottom" class="overlay">
-  Fase 2: blocos em “3D” + bolinha com gravidade. A regra de remover múltiplos de 9 continua valendo.
+  Fase 2: blocos em “3D” + bolinha com gravidade. Objetivo: fazer a bolinha tocar a <b>borda inferior</b> do tabuleiro.
 </div>
 
+<div id="win"><div class="card">🎉 Vitória! Toque/Click para recomeçar</div></div>
+
 <script type="module">
-// ============ v2.0 — Fase 2 (3D fake + bolinha com gravidade) ============
+// ============ v2.1 — Física corrigida + vitória ============
 const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d', { alpha:false });
 
@@ -60,12 +71,14 @@ const removedEl = document.getElementById('removed');
 const btnRestart = document.getElementById('restart');
 const topBar = document.getElementById('top');
 const bottomBar = document.getElementById('bottom');
+const winEl = document.getElementById('win');
 
 const GRID = 9;
 const VALUES = { min:1, max:8 };
-const PADDING = 20; // margem interna em volta do tabuleiro
+const PADDING = 20; // margem interna
+const EPS = 0.0001;
 
-// Paleta por valor (topo do bloco)
+// Paleta por valor
 const VAL = ['',
   '#a6e3a1','#94e2d5','#89b4fa','#f9e2af','#fab387','#eba0ac','#cba6f7','#f38ba8'
 ];
@@ -76,11 +89,12 @@ const state = {
   removed: 0,
   sum: 0,
   dragging: false,
-  // bola
-  ball: { x:0, y:0, r:14, vx:160, vy:0 } // velocidades em px/s
+  win: false,
+  // bolinha
+  ball: { x:0, y:0, r:14, vx:160, vy:0 } // px/s
 };
 
-// ---------------- helpers ----------------
+// ---------- helpers ----------
 const randInt = (a,b)=> Math.floor(a + Math.random()*(b-a+1));
 const inBounds = (r,c)=> r>=0 && r<GRID && c>=0 && c<GRID;
 const isEmpty  = (r,c)=> state.grid[r][c] === 0;
@@ -132,10 +146,11 @@ function pointToCell(px,py){
   return inBounds(r,c) ? { r,c } : null;
 }
 
-// ---------------- regras base ----------------
+// ---------- regras base ----------
 function initGrid(){
   state.grid = Array.from({length:GRID},()=> Array.from({length:GRID},()=> randInt(VALUES.min, VALUES.max)));
-  state.removed = 0; clearSelection(); placeBallAtTop(); syncHud();
+  state.removed = 0; state.win = false; winEl.style.display='none';
+  clearSelection(); placeBallAtTop(); syncHud();
 }
 function clearSelection(){ state.selected.length=0; state.sum=0; syncHud(); }
 function tryAddToSelection(rc){
@@ -167,39 +182,57 @@ function syncHud(){
   removedEl.textContent = state.removed;
 }
 
-// ---------------- bolinha (gravidade só nela) ----------------
+// ---------- bolinha (gravidade corrigida) ----------
 function placeBallAtTop(){
   const { x0, y0, size } = boardOrigin(); const s = cellSize();
   state.ball.r = Math.max(10, Math.floor(s*0.35));
   state.ball.x = x0 + size/2;
   state.ball.y = y0 - state.ball.r - 4; // acima do tabuleiro
-  state.ball.vx = Math.sign(state.ball.vx||1) || 1; // direção preservada
-  state.ball.vx *= Math.max(100, s*6.5);
+  const speed = Math.max(100, s*6.5);
+  state.ball.vx = (state.ball.vx>=0?1:-1) * speed;
   state.ball.vy = 0;
 }
 function columnAtX(x){
   const { x0 } = boardOrigin(); const s = cellSize();
-  const col = Math.floor((x - x0)/s);
-  return Math.max(0, Math.min(GRID-1, col));
+  return Math.max(0, Math.min(GRID-1, Math.floor((x - x0)/s)));
 }
-function floorYUnderBall(x){
+function floorYForColumn(col){
   const { y0 } = boardOrigin(); const s = cellSize();
-  const col = columnAtX(x);
-  // procura o 1º bloco NÃO vazio de cima para baixo
-  for (let r=0; r<GRID; r++){
-    if (state.grid[r][col] !== 0) return y0 + r*s; // topo do bloco
-  }
-  // sem blocos nessa coluna -> piso é o fundo do tabuleiro
-  return y0 + GRID*s;
+  for (let r=0; r<GRID; r++) if (state.grid[r][col] !== 0) return y0 + r*s; // topo
+  return y0 + GRID*s; // fundo do tabuleiro
 }
 function updateBall(dt){
-  const g = Math.max(1500, cellSize()*150); // gravidade px/s²
+  if (state.win) return;
+
+  const g = Math.max(1500, cellSize()*150);
   const { x0 } = boardOrigin(); const s = cellSize(); const boardW = s*GRID;
 
-  // movimento horizontal
-  state.ball.x += state.ball.vx * dt;
+  // PREVISÃO HORIZONTAL
+  let nextX = state.ball.x + state.ball.vx * dt;
+  const currCol = columnAtX(state.ball.x);
+  const nextCol = columnAtX(nextX);
+  const floorCurr = floorYForColumn(currCol);
+  const floorNext = floorYForColumn(nextCol);
 
-  // quica nas bordas laterais do tabuleiro
+  // Degrau pra cima? (próxima coluna tem topo mais alto na tela -> y menor)
+  const stepUp = floorNext < floorCurr - EPS;
+
+  // Se está "em contato" com o piso atual e há degrau pra cima na direção do movimento,
+  // colide com a parede vertical do degrau e rebate (não sobe).
+  const touchingFloor = Math.abs((state.ball.y + state.ball.r) - floorCurr) < 1.0;
+  if (nextCol !== currCol && stepUp && touchingFloor){
+    if (state.ball.vx > 0){
+      const boundary = x0 + (currCol+1)*s;            // parede à direita da coluna atual
+      nextX = boundary - state.ball.r - EPS;          // encosta na parede
+    } else {
+      const boundary = x0 + currCol*s;                // parede à esquerda
+      nextX = boundary + state.ball.r + EPS;
+    }
+    state.ball.vx *= -1; // rebate
+  }
+
+  // Avança horizontalmente (com bordas externas)
+  state.ball.x = nextX;
   if (state.ball.x - state.ball.r < x0){
     state.ball.x = x0 + state.ball.r; state.ball.vx = Math.abs(state.ball.vx);
   }
@@ -207,26 +240,32 @@ function updateBall(dt){
     state.ball.x = x0 + boardW - state.ball.r; state.ball.vx = -Math.abs(state.ball.vx);
   }
 
-  // gravidade/colisão com "piso" dado pela coluna atual
-  const floor = floorYUnderBall(state.ball.x);
-  // aplica gravidade
+  // Gravidade (somente para baixo)
   state.ball.vy += g * dt;
-  state.ball.y += state.ball.vy * dt;
+  let nextY = state.ball.y + state.ball.vy * dt;
 
-  // se encostar no piso, gruda no topo e zera vy
-  if (state.ball.y + state.ball.r > floor){
-    state.ball.y = floor - state.ball.r;
+  // Piso para a X atual
+  const col = columnAtX(state.ball.x);
+  const floor = floorYForColumn(col);
+
+  // Se atravessaria o piso, encosta e zera vy (não "sobe" nunca)
+  if (nextY + state.ball.r >= floor){
+    nextY = floor - state.ball.r;
     state.ball.vy = 0;
   }
+  state.ball.y = nextY;
 
-  // se o piso "subiu" (degrau), ajusta para cima mesmo sem queda
-  if (state.ball.y + state.ball.r > floor){
-    state.ball.y = floor - state.ball.r;
+  // Vitória: tocou a borda inferior do tabuleiro
+  const { y0 } = boardOrigin();
+  const bottom = y0 + GRID*s;
+  if (state.ball.y + state.ball.r >= bottom - EPS){
+    state.win = true;
+    winEl.style.display = 'grid';
   }
 }
 
-// ---------------- desenho ----------------
-function shade(hex, f){ // f<1 escurece, f>1 clareia
+// ---------- desenho ----------
+function shade(hex, f){
   const n = parseInt(hex.slice(1),16);
   let r=(n>>16)&255,g=(n>>8)&255,b=n&255;
   r=Math.max(0,Math.min(255,Math.round(r*f)));
@@ -234,20 +273,17 @@ function shade(hex, f){ // f<1 escurece, f>1 clareia
   b=Math.max(0,Math.min(255,Math.round(b*f)));
   return `rgb(${r},${g},${b})`;
 }
-function drawBlocks3D(r,c,val,selected){
-  const { x,y,w:h } = cellRect(r,c); const s = h; // s = size
-  const d = Math.max(3, Math.floor(s*0.18)); // “altura” 3D
-  const top = selected ? '#2a5585' : '#151b23';
-  // topo colorido
-  const fillTop = val? VAL[val] : top;
-  // sombrear faces
-  const right = val? shade(VAL[val], 0.82) : '#10151b';
-  const bottom = val? shade(VAL[val], 0.70) : '#0c1116';
+function drawBlock3D(r,c,val,selected){
+  const { x,y,w:s } = cellRect(r,c);
+  const d = Math.max(3, Math.floor(s*0.18));
+  const base = selected ? '#2a5585' : '#151b23';
+  const topColor = val ? VAL[val] : base;
+  const right = val ? shade(VAL[val], 0.82) : '#10151b';
+  const bottom = val ? shade(VAL[val], 0.70) : '#0c1116';
 
-  // TOP
-  ctx.fillStyle = fillTop;
-  ctx.fillRect(x+1, y+1, s-2, s-2);
-  // RIGHT FACE
+  // Top
+  ctx.fillStyle = topColor; ctx.fillRect(x+1, y+1, s-2, s-2);
+  // Right face
   ctx.fillStyle = right;
   ctx.beginPath();
   ctx.moveTo(x+s-1, y+1);
@@ -255,7 +291,7 @@ function drawBlocks3D(r,c,val,selected){
   ctx.lineTo(x+s-1 + d, y+s-1 + d);
   ctx.lineTo(x+s-1,   y+s-1);
   ctx.closePath(); ctx.fill();
-  // BOTTOM FACE
+  // Bottom face
   ctx.fillStyle = bottom;
   ctx.beginPath();
   ctx.moveTo(x+1,   y+s-1);
@@ -264,23 +300,21 @@ function drawBlocks3D(r,c,val,selected){
   ctx.lineTo(x+1 + d,   y+s-1 + d);
   ctx.closePath(); ctx.fill();
 
-  // bordas sutis
+  // Borda
   ctx.strokeStyle = '#243041'; ctx.lineWidth = 1;
   ctx.strokeRect(x+0.5, y+0.5, s-1, s-1);
 
-  // número no topo
+  // Número
   if (val){
     ctx.fillStyle = '#0b0d11cc';
     ctx.font = Math.floor(s*0.44) + 'px system-ui';
     ctx.textAlign='center'; ctx.textBaseline='middle';
     ctx.fillText(String(val), x+s/2, y+s/2);
   } else {
-    // vazio: pontinho de guia
     ctx.fillStyle = 'rgba(255,255,255,.06)';
     ctx.beginPath(); ctx.arc(x+s/2, y+s/2, Math.max(2, s*0.04), 0, Math.PI*2); ctx.fill();
   }
 }
-
 function drawBall(){
   const b = state.ball;
   // sombra
@@ -288,23 +322,16 @@ function drawBall(){
   ctx.beginPath();
   ctx.ellipse(b.x+4, b.y+b.r-2, b.r*0.9, b.r*0.35, 0, 0, Math.PI*2);
   ctx.fill();
-
   // esfera
   const grad = ctx.createRadialGradient(b.x-b.r*0.35, b.y-b.r*0.35, b.r*0.2, b.x, b.y, b.r);
   grad.addColorStop(0, '#e7f5ff');
   grad.addColorStop(1, '#6aa2ff');
   ctx.fillStyle = grad;
-  ctx.beginPath();
-  ctx.arc(b.x, b.y, b.r, 0, Math.PI*2);
-  ctx.fill();
-
+  ctx.beginPath(); ctx.arc(b.x, b.y, b.r, 0, Math.PI*2); ctx.fill();
   // highlight
   ctx.fillStyle = 'rgba(255,255,255,.6)';
-  ctx.beginPath();
-  ctx.arc(b.x-b.r*0.3, b.y-b.r*0.45, Math.max(2,b.r*0.25), 0, Math.PI*2);
-  ctx.fill();
+  ctx.beginPath(); ctx.arc(b.x-b.r*0.3, b.y-b.r*0.45, Math.max(2,b.r*0.25), 0, Math.PI*2); ctx.fill();
 }
-
 function draw(){
   const dpr = Math.max(1, Math.floor(window.devicePixelRatio||1));
   ctx.save(); ctx.scale(dpr,dpr);
@@ -312,23 +339,13 @@ function draw(){
   ctx.fillStyle = '#0b0d11'; ctx.fillRect(0,0,w,h);
 
   const s = cellSize(); const { x0, y0 } = boardOrigin();
+  ctx.fillStyle = '#0f1318'; ctx.fillRect(x0-4, y0-4, s*GRID+8, s*GRID+8);
 
-  // painel do tabuleiro (fundo)
-  ctx.fillStyle = '#0f1318';
-  ctx.fillRect(x0-4, y0-4, s*GRID+8, s*GRID+8);
+  for (let r=0;r<GRID;r++) for (let c=0;c<GRID;c++) drawBlock3D(r,c, state.grid[r][c], selectedHas(r,c));
 
-  // desenha células
-  for (let r=0;r<GRID;r++){
-    for (let c=0;c<GRID;c++){
-      drawBlocks3D(r,c, state.grid[r][c], selectedHas(r,c));
-    }
-  }
-
-  // caminho da seleção
   if (state.selected.length>0){
-    ctx.strokeStyle = 'rgba(255,255,255,.35)';
-    ctx.lineWidth = Math.max(2, s*0.06);
-    ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+    ctx.strokeStyle = 'rgba(255,255,255,.35)'; ctx.lineWidth = Math.max(2, s*0.06);
+    ctx.lineJoin='round'; ctx.lineCap='round';
     ctx.beginPath();
     for (let i=0;i<state.selected.length;i++){
       const {cx,cy} = cellRect(state.selected[i].r, state.selected[i].c);
@@ -337,17 +354,15 @@ function draw(){
     ctx.stroke();
   }
 
-  // bolinha
   drawBall();
 
-  // dica
   ctx.fillStyle = 'rgba(255,255,255,.12)'; ctx.font='12px system-ui'; ctx.textAlign='left';
   ctx.fillText('Arraste para selecionar. Solte para validar.', x0, y0 - 10);
 
   ctx.restore();
 }
 
-// ---------------- input ----------------
+// ---------- input ----------
 function canvasPoint(evt){
   const rect = canvas.getBoundingClientRect();
   let x,y;
@@ -359,8 +374,8 @@ function canvasPoint(evt){
   const dpr = Math.max(1, Math.floor(window.devicePixelRatio||1));
   return { x:px/dpr, y:py/dpr };
 }
-function onDown(e){ e.preventDefault(); state.dragging=true; const pt=canvasPoint(e); const cell=pointToCell(pt.x,pt.y); if(cell){ clearSelection(); tryAddToSelection(cell); } }
-function onMove(e){ if(!state.dragging) return; e.preventDefault(); const pt=canvasPoint(e); const cell=pointToCell(pt.x,pt.y); if(cell){ tryAddToSelection(cell); } }
+function onDown(e){ if(state.win){initGrid(); return;} e.preventDefault(); state.dragging=true; const pt=canvasPoint(e); const cell=pointToCell(pt.x,pt.y); if(cell){ clearSelection(); tryAddToSelection(cell); } }
+function onMove(e){ if(!state.dragging||state.win) return; e.preventDefault(); const pt=canvasPoint(e); const cell=pointToCell(pt.x,pt.y); if(cell){ tryAddToSelection(cell); } }
 function onUp(e){ if(!state.dragging) return; e.preventDefault(); state.dragging=false; commitIfValid(); }
 
 canvas.addEventListener('mousedown', onDown);
@@ -371,8 +386,9 @@ canvas.addEventListener('touchmove',  onMove, {passive:false});
 canvas.addEventListener('touchend',   onUp,   {passive:false});
 
 btnRestart.addEventListener('click', initGrid);
+winEl.addEventListener('click', initGrid);
 
-// ---------------- loop ----------------
+// ---------- loop ----------
 let last = 0;
 function tick(t){
   const dt = Math.min(0.05, (t - last)/1000 || 0); last = t;
