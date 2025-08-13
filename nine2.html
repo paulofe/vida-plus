@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
-<title>9x9 • Múltiplos de 9 v2.8</title>
+<title>9x9 • Múltiplos de 9 v3.1</title>
 <style>
   :root { color-scheme: dark; }
   html,body{margin:0;height:100%;background:#0d0f12;color:#e8e8e8;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial}
@@ -25,7 +25,7 @@
 
 <div id="top" class="overlay">
   <div style="display:flex;align-items:center;">
-    <div id="title">9x9 • Múltiplos de 9</div><div id="ver">v2.8</div>
+    <div id="title">9x9 • Múltiplos de 9</div><div id="ver">v3.1</div>
   </div>
   <div class="hud">
     <span class="pill">Soma: <b id="sum">0</b></span>
@@ -40,7 +40,7 @@
 <div id="win"><div class="card">🎉 Vitória! Toque/Click para recomeçar</div></div>
 
 <script type="module">
-// ===== v2.8 — parede só em "degrau pra cima" + célula da mesma linha ocupada (corrige travar no início) =====
+// ===== v3.1 — colisão lateral SOMENTE se célula-alvo da MESMA LINHA estiver ocupada =====
 const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d', { alpha:false });
 const sumEl = document.getElementById('sum'), modEl = document.getElementById('mod');
@@ -86,7 +86,7 @@ function origin(){
 }
 function rect(r,c){const s=cellSize(),{x0,y0}=origin();const x=x0+c*s,y=y0+r*s;return{x,y,w:s,h:s,cx:x+s/2,cy:y+s/2}}
 function p2c(px,py){const {x0,y0,size}=origin();const s=cellSize();if(px<x0||py<y0||px>=x0+size||py>=y0+size)return null;const c=Math.floor((px-x0)/s),r=Math.floor((py-y0)/s);return inB(r,c)?{r,c}:null}
-// viés p/ baixo pra não pegar a linha de cima no limite
+// leve viés p/ baixo para não pegar a linha de cima no limite
 const rowAtY=(yBottom)=>{const {y0}=origin(); const s=cellSize(); return Math.max(0,Math.min(GRID-1, Math.floor(((yBottom - y0) + 0.001)/s)));};
 
 // ---------- base game ----------
@@ -113,7 +113,8 @@ function commit(){
   if(S.sum%9===0){for(const p of S.selected){if(S.grid[p.r][p.c]!==0){S.grid[p.r][p.c]=0;S.removed++;}} clearSel(); return true;}
   clearSel(); return false;
 }
-function hud(){sumEl.textContent=S.sum;modEl.textContent=S.sum%9;countEl.textContent=S.selected.length;removedEl.textContent=S.removed}
+function hud(){sumEl.textContent=S.sum;modEl.textContent=S.sum%9;countEl.textContent=S.selected.length;removedEl.textContent=S.remov
+ed}
 
 // ---------- bola ----------
 const colAtX=x=>{const {x0}=origin(); const s=cellSize(); return Math.max(0,Math.min(GRID-1,Math.floor((x-x0)/s)))}
@@ -127,7 +128,7 @@ function floorYFrom(col, yBottom){
 }
 
 function placeBall(first=false){
-  const {x0,size,y0}=origin(); const s=cellSize();
+  const {x0,y0}=origin(); const s=cellSize();
   S.ball.r=Math.max(10,Math.floor(s*0.35));
   const startCol=Math.floor(GRID/2);
   S.ball.x = x0 + (startCol+0.5)*s;
@@ -137,7 +138,7 @@ function placeBall(first=false){
   S.ball.vy = 0;
 }
 
-// Física: 1) vertical (usando floorYFrom)  2) horizontal: parede só se "degrau pra cima" E célula-alvo da MESMA LINHA ocupada
+// Física: 1) vertical  2) horizontal com parede SOMENTE se célula-alvo (mesma linha) ocupada
 function updateBall(dt){
   if(S.win) return;
   const g=Math.max(1100, cellSize()*110);
@@ -161,14 +162,10 @@ function updateBall(dt){
   let nextX = S.ball.x + S.ball.vx*dt;
   const cNext = colAtX(nextX);
   if(onFloor && cNext !== c0){
-    const rBall = rowAtY(S.ball.y + S.ball.r);
+    const rBall = rowAtY(S.ball.y + S.ball.r);           // linha da base da bola
     const occupiedSameRow = inB(rBall, cNext) && (S.grid[rBall][cNext] !== 0);
-    // compara pisos no MESMO nível da bola
-    const floorCurr = floorYFrom(c0, S.ball.y + S.ball.r + 0.001);
-    const floorNext = floorYFrom(cNext, S.ball.y + S.ball.r + 0.001);
-    const stepUp = floorNext < floorCurr - EPS; // próxima coluna é mais alta -> parede
-
-    if(stepUp && occupiedSameRow){
+    if(occupiedSameRow){
+      // parede: encosta e rebate
       if(S.ball.vx > 0){
         const wallX = x0 + (c0+1)*s;
         nextX = wallX - S.ball.r - EPS;
