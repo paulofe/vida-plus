@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
-<title>9x9 • Múltiplos de 9 v3.5</title>
+<title>9x9 • Múltiplos de 9 v3.6</title>
 <style>
   :root { color-scheme: dark; }
   html,body{margin:0;height:100%;background:#0d0f12;color:#e8e8e8;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial}
@@ -25,7 +25,7 @@
 
 <div id="top" class="overlay">
   <div style="display:flex;align-items:center;">
-    <div id="title">9x9 • Múltiplos de 9</div><div id="ver">v3.5</div>
+    <div id="title">9x9 • Múltiplos de 9</div><div id="ver">v3.6</div>
   </div>
   <div class="hud">
     <span class="pill">Soma: <b id="sum">0</b></span>
@@ -40,7 +40,7 @@
 <div id="win"><div class="card">🎉 Vitória! Toque/Click para recomeçar</div></div>
 
 <script type="module">
-// ===== v3.5 — colisão lateral = só célula da MESMA LINHA; gravidade cai até o 1º bloco abaixo =====
+// ===== v3.6 — lateral só bloqueia em DEGRAU PRA CIMA na MESMA LINHA; plano passa =====
 const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d', { alpha:false });
 const sumEl = document.getElementById('sum'), modEl = document.getElementById('mod');
@@ -49,7 +49,8 @@ const btnRestart = document.getElementById('restart');
 const topBar = document.getElementById('top'), bottomBar = document.getElementById('bottom');
 const winEl = document.getElementById('win');
 
-const GRID = 9, PADDING = 20, EPS = 0.5;
+const GRID = 9, PADDING = 20;
+const EPS = 0.25; // tolerância subpixel
 const VALUES = {min:1,max:8};
 const VAL = ['','#a6e3a1','#94e2d5','#89b4fa','#f9e2af','#fab387','#eba0ac','#cba6f7','#f38ba8'];
 
@@ -141,7 +142,7 @@ function placeBall(first=false){
   S.ball.vy = 0;
 }
 
-// Física: 1) vertical (cai até o 1º bloco)  2) lateral: colide se célula-alvo MESMA LINHA está ocupada
+// Física: 1) vertical (cai até o 1º bloco)  2) lateral: passa em plano; bloqueia só em degrau pra cima
 function updateBall(dt){
   if(S.win) return;
   const g=Math.max(1100, cellSize()*110);
@@ -161,16 +162,23 @@ function updateBall(dt){
   if(nextY < S.ball.y) nextY = S.ball.y; // nunca sobe
   S.ball.y = nextY;
 
-  // --- 2) Lateral (só mesma linha) ---
+  // --- 2) Lateral (bloqueia só em degrau pra cima na mesma linha) ---
   let nextX = S.ball.x + S.ball.vx*dt;
   const cNext = colAtX(nextX);
   if(onFloor && cNext !== c0){
-    // linha do piso onde a bola está apoiada
-    const {y0}=origin(); 
+    // linha do piso atual
+    const {y0}=origin();
     const rFloor = Math.max(0, Math.min(GRID-1, Math.floor((floor0 - y0)/s)));
-    const occupiedSide = inB(rFloor, cNext) && (S.grid[rFloor][cNext] !== 0);
-    if(occupiedSide){
-      // encosta e rebate
+    const occupiedSameRow = inB(rFloor, cNext) && (S.grid[rFloor][cNext] !== 0);
+
+    // compara altura dos pisos na altura da bola
+    const floorCurr = floor0;
+    const floorNext = floorYFrom(cNext, S.ball.y + S.ball.r + 0.001);
+
+    const stepUp = floorNext < floorCurr - EPS; // destino está MAIS ALTO (y menor)
+
+    if(occupiedSameRow && stepUp){
+      // parede: encosta e rebate
       if(S.ball.vx > 0){
         const wallX = x0 + (c0+1)*s;
         nextX = wallX - S.ball.r - EPS;
@@ -193,7 +201,7 @@ function updateBall(dt){
   if(S.ball.y + S.ball.r >= bottom - EPS){ win(); }
 }
 
-// ---------- confete / render / input / loop (iguais às versões anteriores) ----------
+// ---------- confete / render / input / loop: iguais ----------
 function win(){
   if(S.win) return;
   S.win=true; winEl.style.display='grid';
