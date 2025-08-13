@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
-<title>9x9 • Múltiplos de 9 v2.3</title>
+<title>9x9 • Múltiplos de 9 v2.4</title>
 <style>
   :root { color-scheme: dark; }
   html,body{margin:0;height:100%;background:#0d0f12;color:#e8e8e8;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial}
@@ -25,7 +25,7 @@
 
 <div id="top" class="overlay">
   <div style="display:flex;align-items:center;">
-    <div id="title">9x9 • Múltiplos de 9</div><div id="ver">v2.3</div>
+    <div id="title">9x9 • Múltiplos de 9</div><div id="ver">v2.4</div>
   </div>
   <div class="hud">
     <span class="pill">Soma: <b id="sum">0</b></span>
@@ -40,7 +40,7 @@
 <div id="win"><div class="card">🎉 Vitória! Toque/Click para recomeçar</div></div>
 
 <script type="module">
-// ===== v2.3 — bola mais lenta + colisão por linha + confete =====
+// ===== v2.4 — fixa 1) primeira queda de linha 2) colisão só na célula da linha da bolinha; bola um pouco mais lenta =====
 const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d', { alpha:false });
 const sumEl = document.getElementById('sum'), modEl = document.getElementById('mod');
@@ -55,12 +55,12 @@ const VAL = ['','#a6e3a1','#94e2d5','#89b4fa','#f9e2af','#fab387','#eba0ac','#cb
 
 const S = {
   grid:[], selected:[], removed:0, sum:0, dragging:false, win:false,
-  ball:{x:0,y:0,r:14,vx:160,vy:0}, confetti:[]
+  ball:{x:0,y:0,r:14,vx:140,vy:0}, confetti:[]
 };
 
 // ---------- utils ----------
-const R = (a,b)=>Math.floor(a+Math.random()*(b-a+1));
-const inB = (r,c)=>r>=0&&r<GRID&&c>=0&&c<GRID;
+const R=(a,b)=>Math.floor(a+Math.random()*(b-a+1));
+const inB=(r,c)=>r>=0&&r<GRID&&c>=0&&c<GRID;
 const isEmpty=(r,c)=>S.grid[r][c]===0;
 const adj=(a,b)=>Math.abs(a.r-b.r)+Math.abs(a.c-b.c)===1;
 const hasSel=(r,c)=>S.selected.some(p=>p.r===r&&p.c===c);
@@ -86,7 +86,7 @@ function origin(){
 }
 function rect(r,c){const s=cellSize(),{x0,y0}=origin();const x=x0+c*s,y=y0+r*s;return{x,y,w:s,h:s,cx:x+s/2,cy:y+s/2}}
 function p2c(px,py){const {x0,y0,size}=origin();const s=cellSize();if(px<x0||py<y0||px>=x0+size||py>=y0+size)return null;const c=Math.floor((px-x0)/s),r=Math.floor((py-y0)/s);return inB(r,c)?{r,c}:null}
-const rowAtY = (yBottom)=>{const {y0}=origin(); const s=cellSize(); return Math.max(0, Math.min(GRID-1, Math.floor((yBottom - y0)/s)));};
+const rowAtY=(yBottom)=>{const {y0}=origin(); const s=cellSize(); return Math.max(0,Math.min(GRID-1, Math.floor(((yBottom+EPS) - y0)/s)));};
 
 // ---------- base game ----------
 function initGrid(){
@@ -108,72 +108,82 @@ function tryAdd(rc){
   } hud();
 }
 function commit(){
-  if(!S.selected.length) return false;
-  if(S.sum%9===0){ for(const p of S.selected){ if(S.grid[p.r][p.c]!==0){S.grid[p.r][p.c]=0;S.removed++;} } clearSel(); return true; }
+  if(!S.selected.length)return false;
+  if(S.sum%9===0){for(const p of S.selected){if(S.grid[p.r][p.c]!==0){S.grid[p.r][p.c]=0;S.removed++;}} clearSel(); return true;}
   clearSel(); return false;
 }
 function hud(){sumEl.textContent=S.sum;modEl.textContent=S.sum%9;countEl.textContent=S.selected.length;removedEl.textContent=S.removed}
 
 // ---------- bola ----------
 function floorY(col){
-  const {y0}=origin();const s=cellSize();
-  for(let r=0;r<GRID;r++) if(S.grid[r][col]!==0) return y0+r*s; // topo do primeiro bloco
-  return y0+GRID*s; // fundo
+  const {y0}=origin(); const s=cellSize();
+  for(let r=0;r<GRID;r++) if(S.grid[r][col]!==0) return y0 + r*s;
+  return y0 + GRID*s;
 }
 function placeBall(first=false){
   const {x0,size}=origin(); const s=cellSize();
   S.ball.r=Math.max(10,Math.floor(s*0.35));
   const startCol=Math.floor(GRID/2);
   S.ball.x = x0 + (startCol+0.5)*s;
-  // nasce já apoiada no piso da coluna escolhida -> não “atravessa” na 1ª vez
-  S.ball.y = floorY(startCol) - S.ball.r;
-  const speed = Math.max(80, s*4.0); // mais devagar
-  if(first) S.ball.vx = speed; else S.ball.vx = (S.ball.vx>=0?1:-1)*speed;
+  S.ball.y = floorY(startCol) - S.ball.r; // já nasce apoiada
+  const speed = Math.max(70, s*3.2); // mais devagar
+  S.ball.vx = (first?1:(S.ball.vx>=0?1:-1)) * speed;
   S.ball.vy = 0;
 }
-const colAtX=x=>{const {x0}=origin();const s=cellSize();return Math.max(0,Math.min(GRID-1,Math.floor((x-x0)/s)))}
+const colAtX=x=>{const {x0}=origin(); const s=cellSize(); return Math.max(0,Math.min(GRID-1,Math.floor((x-x0)/s)))}
+
+// Física v2.4: vertical primeiro (gruda no piso), depois horizontal com colisão por célula da MESMA LINHA
 function updateBall(dt){
   if(S.win) return;
-  const g=Math.max(1200,cellSize()*120);
+  const g=Math.max(1100, cellSize()*110);
   const {x0}=origin(); const s=cellSize(), boardW=s*GRID;
 
-  // previsão horizontal
-  let nextX=S.ball.x + S.ball.vx*dt;
-  const currC=colAtX(S.ball.x), nextC=colAtX(nextX);
-  const floorCurr=floorY(currC), floorNext=floorY(nextC);
-  const touching=Math.abs((S.ball.y+S.ball.r)-floorCurr)<1.0;
-
-  // *** Colisão lateral por LINHA ***
-  // altura (linha) da base da bola
-  const rBall = rowAtY(S.ball.y + S.ball.r);
-  const nextCellOccupied = inB(rBall,nextC) ? (S.grid[rBall][nextC]!==0) : false;
-
-  // degrau “pra cima” (próxima coluna mais alta) + célula na altura da bola está ocupada
-  const stepUp = floorNext < floorCurr - EPS;
-  if(nextC!==currC && touching && stepUp && nextCellOccupied){
-    if(S.ball.vx>0){const wall=x0+(currC+1)*s; nextX=wall - S.ball.r - EPS;}
-    else{const wall=x0+currC*s; nextX=wall + S.ball.r + EPS;}
-    S.ball.vx*=-1; // rebate
+  // --- 1) Vertical ---
+  S.ball.vy += g*dt;                          // acelera para baixo
+  let nextY = S.ball.y + S.ball.vy*dt;        // y proposto
+  const c0 = colAtX(S.ball.x);                // coluna atual
+  const floor0 = floorY(c0);                  // piso da coluna atual
+  let onFloor = false;
+  if(nextY + S.ball.r >= floor0){             // bateu no piso -> gruda
+    nextY = floor0 - S.ball.r;
+    S.ball.vy = 0;
+    onFloor = true;
   }
-
-  // aplicar x e bordas externas
-  S.ball.x=nextX;
-  if(S.ball.x-S.ball.r<x0){S.ball.x=x0+S.ball.r; S.ball.vx=Math.abs(S.ball.vx);}
-  if(S.ball.x+S.ball.r>x0+boardW){S.ball.x=x0+boardW-S.ball.r; S.ball.vx=-Math.abs(S.ball.vx);}
-
-  // gravidade (sem subida)
-  S.ball.vy += g*dt;
-  let nextY = S.ball.y + S.ball.vy*dt;
-  if(nextY < S.ball.y) nextY = S.ball.y; // nunca sobe
-
-  // piso para a coluna atual
-  const c=colAtX(S.ball.x), floor=floorY(c);
-  if(nextY + S.ball.r >= floor){ nextY=floor - S.ball.r; S.ball.vy=0; }
-  if(nextY < S.ball.y) nextY = S.ball.y;
+  if(nextY < S.ball.y) nextY = S.ball.y;      // nunca sobe
   S.ball.y = nextY;
 
-  // vitória
-  const {y0}=origin(); const bottom=y0+GRID*s;
+  // --- 2) Horizontal + parede por célula da LINHA da bola ---
+  let nextX = S.ball.x + S.ball.vx*dt;
+  const rBall = rowAtY(S.ball.y + S.ball.r);  // linha da base da bola (já atualizada)
+  const cNext = colAtX(nextX);
+
+  if(onFloor && cNext !== c0){
+    if(S.ball.vx > 0){ // indo para a direita
+      const wallCol = c0 + 1;
+      const occupied = inB(rBall, wallCol) && (S.grid[rBall][wallCol] !== 0);
+      if(occupied){
+        const wallX = x0 + (c0+1)*s;
+        nextX = wallX - S.ball.r - EPS;       // encosta na parede
+        S.ball.vx = -Math.abs(S.ball.vx);     // rebate
+      }
+    } else { // esquerda
+      const wallCol = c0 - 1;
+      const occupied = inB(rBall, wallCol) && (S.grid[rBall][wallCol] !== 0);
+      if(occupied){
+        const wallX = x0 + c0*s;
+        nextX = wallX + S.ball.r + EPS;
+        S.ball.vx = Math.abs(S.ball.vx);
+      }
+    }
+  }
+
+  // aplica x e bordas externas do tabuleiro
+  S.ball.x = nextX;
+  if(S.ball.x - S.ball.r < x0){ S.ball.x = x0 + S.ball.r; S.ball.vx = Math.abs(S.ball.vx); }
+  if(S.ball.x + S.ball.r > x0 + boardW){ S.ball.x = x0 + boardW - S.ball.r; S.ball.vx = -Math.abs(S.ball.vx); }
+
+  // --- vitória ---
+  const {y0}=origin(); const bottom=y0 + GRID*s;
   if(S.ball.y + S.ball.r >= bottom - EPS){ win(); }
 }
 
