@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
-<title>9x9 • Múltiplos de 9 v3.6</title>
+<title>9x9 • Múltiplos de 9 v3.7</title>
 <style>
   :root { color-scheme: dark; }
   html,body{margin:0;height:100%;background:#0d0f12;color:#e8e8e8;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial}
@@ -25,7 +25,7 @@
 
 <div id="top" class="overlay">
   <div style="display:flex;align-items:center;">
-    <div id="title">9x9 • Múltiplos de 9</div><div id="ver">v3.6</div>
+    <div id="title">9x9 • Múltiplos de 9</div><div id="ver">v3.7</div>
   </div>
   <div class="hud">
     <span class="pill">Soma: <b id="sum">0</b></span>
@@ -40,151 +40,87 @@
 <div id="win"><div class="card">🎉 Vitória! Toque/Click para recomeçar</div></div>
 
 <script type="module">
-// ===== v3.6 — lateral só bloqueia em DEGRAU PRA CIMA na MESMA LINHA; plano passa =====
-const canvas = document.getElementById('game');
-const ctx = canvas.getContext('2d', { alpha:false });
-const sumEl = document.getElementById('sum'), modEl = document.getElementById('mod');
-const countEl = document.getElementById('count'), removedEl = document.getElementById('removed');
-const btnRestart = document.getElementById('restart');
-const topBar = document.getElementById('top'), bottomBar = document.getElementById('bottom');
-const winEl = document.getElementById('win');
+/* v3.7 — colisão lateral com detecção CONTÍNUA (cruza parede) + regra simples:
+   - lateral: colide se célula da MESMA LINHA (pela base) na coluna de destino está ocupada
+   - para baixo: cai até o primeiro bloco da coluna
+*/
+const canvas=document.getElementById('game');
+const ctx=canvas.getContext('2d',{alpha:false});
+const sumEl=document.getElementById('sum'),modEl=document.getElementById('mod');
+const countEl=document.getElementById('count'),removedEl=document.getElementById('removed');
+const btnRestart=document.getElementById('restart');const topBar=document.getElementById('top'),bottomBar=document.getElementById('bottom');const winEl=document.getElementById('win');
 
-const GRID = 9, PADDING = 20;
-const EPS = 0.25; // tolerância subpixel
-const VALUES = {min:1,max:8};
-const VAL = ['','#a6e3a1','#94e2d5','#89b4fa','#f9e2af','#fab387','#eba0ac','#cba6f7','#f38ba8'];
+const GRID=9,PADDING=20,EPS=0.25;
+const VALUES={min:1,max:8};
+const VAL=['','#a6e3a1','#94e2d5','#89b4fa','#f9e2af','#fab387','#eba0ac','#cba6f7','#f38ba8'];
 
-const S = {
-  grid:[], selected:[], removed:0, sum:0, dragging:false, win:false,
-  ball:{x:0,y:0,r:14,vx:120,vy:0}, confetti:[]
-};
+const S={grid:[],selected:[],removed:0,sum:0,dragging:false,win:false,
+  ball:{x:0,y:0,r:14,vx:120,vy:0},confetti:[]};
 
-// ---------- utils ----------
+// utils
 const R=(a,b)=>Math.floor(a+Math.random()*(b-a+1));
 const inB=(r,c)=>r>=0&&r<GRID&&c>=0&&c<GRID;
 const isEmpty=(r,c)=>S.grid[r][c]===0;
 const adj=(a,b)=>Math.abs(a.r-b.r)+Math.abs(a.c-b.c)===1;
 const hasSel=(r,c)=>S.selected.some(p=>p.r===r&&p.c===c);
-
 const vp=()=>({w:(visualViewport?.width)||innerWidth,h:(visualViewport?.height)||innerHeight});
-function resize(){
-  const {w,h}=vp(); const dpr=Math.max(1,Math.floor(devicePixelRatio||1));
-  canvas.style.width=w+'px'; canvas.style.height=h+'px';
-  canvas.width=Math.floor(w*dpr); canvas.height=Math.floor(h*dpr);
-}
-function cellSize(){
-  const dpr=Math.max(1,Math.floor(devicePixelRatio||1));
-  const w=canvas.width/dpr, h=canvas.height/dpr;
-  const topH=topBar.getBoundingClientRect().height, botH=bottomBar.getBoundingClientRect().height;
-  return Math.max(8, Math.floor(Math.min(w-PADDING*2, h-topH-botH-PADDING*2)/GRID));
-}
-function origin(){
-  const dpr=Math.max(1,Math.floor(devicePixelRatio||1));
-  const w=canvas.width/dpr, h=canvas.height/dpr;
-  const topH=topBar.getBoundingClientRect().height, botH=bottomBar.getBoundingClientRect().height;
-  const s=cellSize()*GRID, x0=Math.floor((w-s)/2), y0=Math.floor((h-topH-botH-s)/2)+topH;
-  return {x0,y0,size:s};
-}
+function resize(){const {w,h}=vp();const dpr=Math.max(1,Math.floor(devicePixelRatio||1));canvas.style.width=w+'px';canvas.style.height=h+'px';canvas.width=Math.floor(w*dpr);canvas.height=Math.floor(h*dpr);}
+function cellSize(){const dpr=Math.max(1,Math.floor(devicePixelRatio||1));const w=canvas.width/dpr,h=canvas.height/dpr;const topH=topBar.getBoundingClientRect().height,botH=bottomBar.getBoundingClientRect().height;return Math.max(8,Math.floor(Math.min(w-PADDING*2,h-topH-botH-PADDING*2)/GRID));}
+function origin(){const dpr=Math.max(1,Math.floor(devicePixelRatio||1));const w=canvas.width/dpr,h=canvas.height/dpr;const topH=topBar.getBoundingClientRect().height,botH=bottomBar.getBoundingClientRect().height;const s=cellSize()*GRID,x0=Math.floor((w-s)/2),y0=Math.floor((h-topH-botH-s)/2)+topH;return{x0,y0,size:s};}
 function rect(r,c){const s=cellSize(),{x0,y0}=origin();const x=x0+c*s,y=y0+r*s;return{x,y,w:s,h:s,cx:x+s/2,cy:y+s/2}}
 function p2c(px,py){const {x0,y0,size}=origin();const s=cellSize();if(px<x0||py<y0||px>=x0+size||py>=y0+size)return null;const c=Math.floor((px-x0)/s),r=Math.floor((py-y0)/s);return inB(r,c)?{r,c}:null}
-const rowAtY=(yBottom)=>{const {y0}=origin(); const s=cellSize(); return Math.max(0,Math.min(GRID-1, Math.floor((yBottom - y0)/s)));};
+const rowAtY=(yBottom)=>{const {y0}=origin();const s=cellSize();return Math.max(0,Math.min(GRID-1,Math.floor((yBottom-y0)/s)));};
 
-// ---------- base game ----------
-function initGrid(){
-  S.grid=Array.from({length:GRID},()=>Array.from({length:GRID},()=>R(VALUES.min,VALUES.max)));
-  S.removed=0; S.win=false; winEl.style.display='none'; S.confetti.length=0;
-  clearSel(); placeBall(true); hud();
-}
-function clearSel(){S.selected.length=0; S.sum=0; hud();}
-function tryAdd(rc){
-  if(!inB(rc.r,rc.c)||isEmpty(rc.r,rc.c))return;
+// base game
+function initGrid(){S.grid=Array.from({length:GRID},()=>Array.from({length:GRID},()=>R(VALUES.min,VALUES.max)));S.removed=0;S.win=false;winEl.style.display='none';S.confetti.length=0;clearSel();placeBall(true);hud();}
+function clearSel(){S.selected.length=0;S.sum=0;hud();}
+function tryAdd(rc){if(!inB(rc.r,rc.c)||isEmpty(rc.r,rc.c))return;
   if(!S.selected.length){S.selected.push(rc);S.sum+=S.grid[rc.r][rc.c];}
-  else{
-    const last=S.selected.at(-1);
-    if(S.selected.length>=2){
-      const prev=S.selected[S.selected.length-2];
-      if(prev.r===rc.r&&prev.c===rc.c){const popped=S.selected.pop();S.sum-=S.grid[popped.r][popped.c];hud();return;}
-    }
-    if(adj(last,rc)&&!hasSel(rc.r,rc.c)){S.selected.push(rc);S.sum+=S.grid[rc.r][rc.c];}
-  } hud();
-}
-function commit(){
-  if(!S.selected.length)return false;
-  if(S.sum%9===0){for(const p of S.selected){if(S.grid[p.r][p.c]!==0){S.grid[p.r][p.c]=0;S.removed++;}} clearSel(); return true;}
-  clearSel(); return false;
-}
-function hud(){
-  sumEl.textContent = S.sum;
-  modEl.textContent = S.sum % 9;
-  countEl.textContent = S.selected.length;
-  removedEl.textContent = S.removed;
-}
+  else{const last=S.selected.at(-1);if(S.selected.length>=2){const prev=S.selected[S.selected.length-2];if(prev.r===rc.r&&prev.c===rc.c){const popped=S.selected.pop();S.sum-=S.grid[popped.r][popped.c];hud();return;}}
+    if(adj(last,rc)&&!hasSel(rc.r,rc.c)){S.selected.push(rc);S.sum+=S.grid[rc.r][rc.c];}} hud();}
+function commit(){if(!S.selected.length)return false;if(S.sum%9===0){for(const p of S.selected){if(S.grid[p.r][p.c]!==0){S.grid[p.r][p.c]=0;S.removed++;}}clearSel();return true;}clearSel();return false;}
+function hud(){sumEl.textContent=S.sum;modEl.textContent=S.sum%9;countEl.textContent=S.selected.length;removedEl.textContent=S.removed;}
 
-// ---------- bola ----------
-const colAtX=x=>{const {x0}=origin(); const s=cellSize(); return Math.max(0,Math.min(GRID-1,Math.floor((x-x0)/s)))}
+// bola
+const colAtX=x=>{const {x0}=origin();const s=cellSize();return Math.max(0,Math.min(GRID-1,Math.floor((x-x0)/s)))}
+function floorYFrom(col,yBottom){const {y0}=origin();const s=cellSize();let r=rowAtY(yBottom);while(r<GRID&&S.grid[r][col]===0)r++;return y0+r*s;} // r==GRID => fundo
 
-/* Piso: primeiro bloco A PARTIR da linha da bola (para baixo) */
-function floorYFrom(col, yBottom){
-  const {y0}=origin(); const s=cellSize();
-  let r = rowAtY(yBottom);
-  while (r < GRID && S.grid[r][col] === 0) r++;
-  return y0 + r*s; // se r==GRID -> fundo
-}
+function placeBall(first=false){const {x0,y0}=origin();const s=cellSize();S.ball.r=Math.max(10,Math.floor(s*0.35));const startCol=Math.floor(GRID/2);S.ball.x=x0+(startCol+0.5)*s;S.ball.y=floorYFrom(startCol,y0-10)-S.ball.r;const speed=Math.max(65,s*3.0);S.ball.vx=(first?1:(S.ball.vx>=0?1:-1))*speed;S.ball.vy=0;}
 
-function placeBall(first=false){
-  const {x0,y0}=origin(); const s=cellSize();
-  S.ball.r=Math.max(10,Math.floor(s*0.35));
-  const startCol=Math.floor(GRID/2);
-  S.ball.x = x0 + (startCol+0.5)*s;
-  S.ball.y = floorYFrom(startCol, y0 - 10) - S.ball.r; // já apoiada
-  const speed = Math.max(65, s*3.0);
-  S.ball.vx = (first?1:(S.ball.vx>=0?1:-1)) * speed;
-  S.ball.vy = 0;
-}
-
-// Física: 1) vertical (cai até o 1º bloco)  2) lateral: passa em plano; bloqueia só em degrau pra cima
 function updateBall(dt){
-  if(S.win) return;
-  const g=Math.max(1100, cellSize()*110);
-  const {x0}=origin(); const s=cellSize(), boardW=s*GRID;
+  if(S.win)return;
+  const g=Math.max(1100,cellSize()*110);
+  const {x0}=origin();const s=cellSize(),boardW=s*GRID;
 
-  // --- 1) Vertical ---
-  S.ball.vy += g*dt;
-  let nextY = S.ball.y + S.ball.vy*dt;
-  const c0 = colAtX(S.ball.x);
-  const floor0 = floorYFrom(c0, nextY + S.ball.r);
-  let onFloor = false;
-  if(nextY + S.ball.r >= floor0 - EPS){
-    nextY = floor0 - S.ball.r;
-    S.ball.vy = 0;
-    onFloor = true;
-  }
-  if(nextY < S.ball.y) nextY = S.ball.y; // nunca sobe
-  S.ball.y = nextY;
+  // 1) Vertical (cai até o 1º bloco)
+  S.ball.vy+=g*dt;
+  let nextY=S.ball.y+S.ball.vy*dt;
+  const c0=colAtX(S.ball.x);
+  const floor0=floorYFrom(c0,nextY+S.ball.r);
+  let onFloor=false;
+  if(nextY+S.ball.r>=floor0-EPS){nextY=floor0-S.ball.r;S.ball.vy=0;onFloor=true;}
+  if(nextY<S.ball.y)nextY=S.ball.y; // nunca sobe
+  S.ball.y=nextY;
 
-  // --- 2) Lateral (bloqueia só em degrau pra cima na mesma linha) ---
-  let nextX = S.ball.x + S.ball.vx*dt;
-  const cNext = colAtX(nextX);
-  if(onFloor && cNext !== c0){
-    // linha do piso atual
-    const {y0}=origin();
-    const rFloor = Math.max(0, Math.min(GRID-1, Math.floor((floor0 - y0)/s)));
-    const occupiedSameRow = inB(rFloor, cNext) && (S.grid[rFloor][cNext] !== 0);
-
-    // compara altura dos pisos na altura da bola
-    const floorCurr = floor0;
-    const floorNext = floorYFrom(cNext, S.ball.y + S.ball.r + 0.001);
-
-    const stepUp = floorNext < floorCurr - EPS; // destino está MAIS ALTO (y menor)
-
-    if(occupiedSameRow && stepUp){
-      // parede: encosta e rebate
-      if(S.ball.vx > 0){
-        const wallX = x0 + (c0+1)*s;
+  // 2) Lateral — detecção contínua (cruza parede)
+  let nextX=S.ball.x+S.ball.vx*dt;
+  if(onFloor){
+    const rFloor=rowAtY(floor0);
+    if(S.ball.vx>0){ // indo p/ direita
+      const wallX=x0+(c0+1)*s;
+      const willCross = (S.ball.x + S.ball.r) < wallX - EPS && (nextX + S.ball.r) >= wallX - EPS;
+      const cRight=c0+1;
+      const occupied = inB(rFloor,cRight) && S.grid[rFloor][cRight]!==0;
+      if(occupied && willCross){
         nextX = wallX - S.ball.r - EPS;
         S.ball.vx = -Math.abs(S.ball.vx);
-      }else{
-        const wallX = x0 + c0*s;
+      }
+    }else if(S.ball.vx<0){ // indo p/ esquerda
+      const wallX=x0+c0*s;
+      const willCross = (S.ball.x - S.ball.r) > wallX + EPS && (nextX - S.ball.r) <= wallX + EPS;
+      const cLeft=c0-1;
+      const occupied = inB(rFloor,cLeft) && S.grid[rFloor][cLeft]!==0;
+      if(occupied && willCross){
         nextX = wallX + S.ball.r + EPS;
         S.ball.vx = Math.abs(S.ball.vx);
       }
@@ -192,106 +128,40 @@ function updateBall(dt){
   }
 
   // bordas externas
-  S.ball.x = nextX;
-  if(S.ball.x - S.ball.r < x0){ S.ball.x = x0 + S.ball.r; S.ball.vx = Math.abs(S.ball.vx); }
-  if(S.ball.x + S.ball.r > x0 + boardW){ S.ball.x = x0 + boardW - S.ball.r; S.ball.vx = -Math.abs(S.ball.vx); }
+  S.ball.x=nextX;
+  if(S.ball.x-S.ball.r<x0){S.ball.x=x0+S.ball.r;S.ball.vx=Math.abs(S.ball.vx);}
+  if(S.ball.x+S.ball.r>x0+boardW){S.ball.x=x0+boardW-S.ball.r;S.ball.vx=-Math.abs(S.ball.vx);}
 
   // vitória
-  const {y0}=origin(); const bottom=y0 + GRID*s;
-  if(S.ball.y + S.ball.r >= bottom - EPS){ win(); }
+  const {y0}=origin();const bottom=y0+GRID*s;
+  if(S.ball.y+S.ball.r>=bottom-EPS){win();}
 }
 
-// ---------- confete / render / input / loop: iguais ----------
-function win(){
-  if(S.win) return;
-  S.win=true; winEl.style.display='grid';
-  const {x0,y0,size}=origin(); const s=cellSize();
-  const cx=x0+size/2, cy=y0+GRID*s-6;
-  const colors=['#ff6b6b','#ffd93d','#6bcb77','#4d96ff','#e66cff','#ff9f1c'];
-  const N=120; S.confetti.length=0;
-  for(let i=0;i<N;i++){const a=Math.random()*Math.PI*2, sp=180+Math.random()*520;
-    S.confetti.push({x:cx,y:cy,vx:Math.cos(a)*sp,vy:-Math.abs(Math.sin(a))*sp*0.9-180*Math.random(),g:900+Math.random()*400,life:1,rot:Math.random()*Math.PI,vr:(Math.random()-0.5)*8,w:4+Math.random()*5,h:8+Math.random()*9,c:colors[i%colors.length]});
-  }
-}
-function updConfetti(dt){
-  for(const p of S.confetti){ if(p.life<=0) continue;
-    p.vy += p.g*dt; p.x += p.vx*dt; p.y += p.vy*dt; p.rot += p.vr*dt; p.life -= 0.9*dt;
-  }
-  S.confetti = S.confetti.filter(p=>p.life>0 && p.y < canvas.height);
-}
-function drawConfetti(){
-  const dpr=Math.max(1,Math.floor(devicePixelRatio||1));
-  ctx.save(); ctx.scale(dpr,dpr);
-  for(const p of S.confetti){
-    ctx.save(); ctx.translate(p.x,p.y); ctx.rotate(p.rot);
-    ctx.fillStyle=p.c; ctx.globalAlpha=Math.max(0,Math.min(1,p.life));
-    ctx.fillRect(-p.w/2,-p.h/2,p.w,p.h); ctx.restore();
-  }
-  ctx.restore();
-}
+// confete (igual)
+function win(){if(S.win)return;S.win=true;winEl.style.display='grid';const {x0,y0,size}=origin();const s=cellSize();const cx=x0+size/2,cy=y0+GRID*s-6;const colors=['#ff6b6b','#ffd93d','#6bcb77','#4d96ff','#e66cff','#ff9f1c'];const N=120;S.confetti.length=0;for(let i=0;i<N;i++){const a=Math.random()*Math.PI*2,sp=180+Math.random()*520;S.confetti.push({x:cx,y:cy,vx:Math.cos(a)*sp,vy:-Math.abs(Math.sin(a))*sp*0.9-180*Math.random(),g:900+Math.random()*400,life:1,rot:Math.random()*Math.PI,vr:(Math.random()-0.5)*8,w:4+Math.random()*5,h:8+Math.random()*9,c:colors[i%colors.length]});}}
+function updConfetti(dt){for(const p of S.confetti){if(p.life<=0)continue;p.vy+=p.g*dt;p.x+=p.vx*dt;p.y+=p.vy*dt;p.rot+=p.vr*dt;p.life-=0.9*dt;}S.confetti=S.confetti.filter(p=>p.life>0&&p.y<canvas.height);}
+function drawConfetti(){const dpr=Math.max(1,Math.floor(devicePixelRatio||1));ctx.save();ctx.scale(dpr,dpr);for(const p of S.confetti){ctx.save();ctx.translate(p.x,p.y);ctx.rotate(p.rot);ctx.fillStyle=p.c;ctx.globalAlpha=Math.max(0,Math.min(1,p.life));ctx.fillRect(-p.w/2,-p.h/2,p.w,p.h);ctx.restore();}ctx.restore();}
+
+// render
 function shade(hex,f){const n=parseInt(hex.slice(1),16);let r=(n>>16)&255,g=(n>>8)&255,b=n&255;r=Math.max(0,Math.min(255,Math.round(r*f)));g=Math.max(0,Math.min(255,Math.round(g*f)));b=Math.max(0,Math.min(255,Math.round(b*f)));return`rgb(${r},${g},${b})`}
-function drawBlock3D(r,c,val,sel){
-  const {x,y,w:s}=rect(r,c), d=Math.max(3,Math.floor(s*0.18));
-  const base=sel?'#2a5585':'#151b23', top=val?VAL[val]:base, right=val?shade(VAL[val],.82):'#10151b', bottom=val?shade(VAL[val],.70):'#0c1116';
-  ctx.fillStyle=top;ctx.fillRect(x+1,y+1,s-2,s-2);
-  ctx.fillStyle=right;ctx.beginPath();ctx.moveTo(x+s-1,y+1);ctx.lineTo(x+s-1+d,y+1+d);ctx.lineTo(x+s-1+d,y+s-1+d);ctx.lineTo(x+s-1,y+s-1);ctx.closePath();ctx.fill();
-  ctx.fillStyle=bottom;ctx.beginPath();ctx.moveTo(x+1,y+s-1);ctx.lineTo(x+s-1,y+s-1);ctx.lineTo(x+s-1+d,y+s-1+d);ctx.lineTo(x+1+d,y+s-1+d);ctx.closePath();ctx.fill();
-  ctx.strokeStyle='#243041';ctx.lineWidth=1;ctx.strokeRect(x+0.5,y+0.5,s-1,s-1);
-  if(val){ctx.fillStyle='#0b0d11cc';ctx.font=Math.floor(s*0.44)+'px system-ui';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(String(val),x+s/2,y+s/2);}
-  else{ctx.fillStyle='rgba(255,255,255,.06)';ctx.beginPath();ctx.arc(x+s/2,y+s/2,Math.max(2,s*0.04),0,Math.PI*2);ctx.fill();}
-}
-function drawBall(){
-  const b=S.ball;
-  ctx.fillStyle='rgba(0,0,0,.35)';ctx.beginPath();ctx.ellipse(b.x+4,b.y+b.r-2,b.r*.9,b.r*.35,0,0,Math.PI*2);ctx.fill();
-  const g=ctx.createRadialGradient(b.x-b.r*.35,b.y-b.r*.35,b.r*.2,b.x,b.y,b.r);
-  g.addColorStop(0,'#e7f5ff');g.addColorStop(1,'#6aa2ff');ctx.fillStyle=g;
-  ctx.beginPath();ctx.arc(b.x,b.y,b.r,0,Math.PI*2);ctx.fill();
-  ctx.fillStyle='rgba(255,255,255,.6)';ctx.beginPath();ctx.arc(b.x-b.r*.3,b.y-b.r*.45,Math.max(2,b.r*.25),0,Math.PI*2);ctx.fill();
-}
-function draw(){
-  const dpr=Math.max(1,Math.floor(devicePixelRatio||1));
-  ctx.save();ctx.scale(dpr,dpr);
-  const w=canvas.width/dpr,h=canvas.height/dpr;
-  ctx.fillStyle='#0b0d11';ctx.fillRect(0,0,w,h);
+function drawBlock3D(r,c,val,sel){const {x,y,w:s}=rect(r,c),d=Math.max(3,Math.floor(s*0.18));const base=sel?'#2a5585':'#151b23',top=val?VAL[val]:base,right=val?shade(VAL[val],.82):'#10151b',bottom=val?shade(VAL[val],.70):'#0c1116';ctx.fillStyle=top;ctx.fillRect(x+1,y+1,s-2,s-2);ctx.fillStyle=right;ctx.beginPath();ctx.moveTo(x+s-1,y+1);ctx.lineTo(x+s-1+d,y+1+d);ctx.lineTo(x+s-1+d,y+s-1+d);ctx.lineTo(x+s-1,y+s-1);ctx.closePath();ctx.fill();ctx.fillStyle=bottom;ctx.beginPath();ctx.moveTo(x+1,y+s-1);ctx.lineTo(x+s-1,y+s-1);ctx.lineTo(x+s-1+d,y+s-1+d);ctx.lineTo(x+1+d,y+s-1+d);ctx.closePath();ctx.fill();ctx.strokeStyle='#243041';ctx.lineWidth=1;ctx.strokeRect(x+0.5,y+0.5,s-1,s-1);if(val){ctx.fillStyle='#0b0d11cc';ctx.font=Math.floor(s*0.44)+'px system-ui';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(String(val),x+s/2,y+s/2);}else{ctx.fillStyle='rgba(255,255,255,.06)';ctx.beginPath();ctx.arc(x+s/2,y+s/2,Math.max(2,s*0.04),0,Math.PI*2);ctx.fill();}}
+function drawBall(){const b=S.ball;ctx.fillStyle='rgba(0,0,0,.35)';ctx.beginPath();ctx.ellipse(b.x+4,b.y+b.r-2,b.r*.9,b.r*.35,0,0,Math.PI*2);ctx.fill();const g=ctx.createRadialGradient(b.x-b.r*.35,b.y-b.r*.35,b.r*.2,b.x,b.y,b.r);g.addColorStop(0,'#e7f5ff');g.addColorStop(1,'#6aa2ff');ctx.fillStyle=g;ctx.beginPath();ctx.arc(b.x,b.y,b.r,0,Math.PI*2);ctx.fill();ctx.fillStyle='rgba(255,255,255,.6)';ctx.beginPath();ctx.arc(b.x-b.r*.3,b.y-b.r*.45,Math.max(2,b.r*.25),0,Math.PI*2);ctx.fill();}
+function draw(){const dpr=Math.max(1,Math.floor(devicePixelRatio||1));ctx.save();ctx.scale(dpr,dpr);const w=canvas.width/dpr,h=canvas.height/dpr;ctx.fillStyle='#0b0d11';ctx.fillRect(0,0,w,h);const s=cellSize();const {x0,y0}=origin();ctx.fillStyle='#0f1318';ctx.fillRect(x0-4,y0-4,s*GRID+8,s*GRID+8);for(let r=0;r<GRID;r++)for(let c=0;c<GRID;c++)drawBlock3D(r,c,S.grid[r][c],hasSel(r,c));if(S.selected.length){ctx.strokeStyle='rgba(255,255,255,.35)';ctx.lineWidth=Math.max(2,s*.06);ctx.lineJoin='round';ctx.lineCap='round';ctx.beginPath();for(let i=0;i<S.selected.length;i++){const {cx,cy}=rect(S.selected[i].r,S.selected[i].c);if(i===0)ctx.moveTo(cx,cy);else ctx.lineTo(cx,cy);}ctx.stroke();}drawBall();ctx.fillStyle='rgba(255,255,255,.12)';ctx.font='12px system-ui';ctx.textAlign='left';ctx.fillText('Arraste para selecionar. Solte para validar.',x0,y0-10);ctx.restore();drawConfetti();}
 
-  const s=cellSize(); const {x0,y0}=origin();
-  ctx.fillStyle='#0f1318';ctx.fillRect(x0-4,y0-4,s*GRID+8,s*GRID+8);
-
-  for(let r=0;r<GRID;r++)for(let c=0;c<GRID;c++)drawBlock3D(r,c,S.grid[r][c],hasSel(r,c));
-
-  if(S.selected.length){ctx.strokeStyle='rgba(255,255,255,.35)';ctx.lineWidth=Math.max(2,s*.06);ctx.lineJoin='round';ctx.lineCap='round';ctx.beginPath();
-    for(let i=0;i<S.selected.length;i++){const {cx,cy}=rect(S.selected[i].r,S.selected[i].c);if(i===0)ctx.moveTo(cx,cy);else ctx.lineTo(cx,cy);} ctx.stroke();}
-
-  drawBall();
-  ctx.fillStyle='rgba(255,255,255,.12)';ctx.font='12px system-ui';ctx.textAlign='left';ctx.fillText('Arraste para selecionar. Solte para validar.', x0, y0-10);
-  ctx.restore();
-
-  drawConfetti();
-}
-
-// ---------- input / loop / resize ----------
-function cpt(evt){
-  const r=canvas.getBoundingClientRect();let x,y;
-  if(evt.touches?.length){x=evt.touches[0].clientX-r.left;y=evt.touches[0].clientY-r.top;}
-  else{x=(evt.clientX??0)-r.left;y=(evt.clientY??0)-r.top;}
-  const cssW=r.width,cssH=r.height,scaleX=canvas.width/cssW,scaleY=canvas.height/cssH;
-  const px=x*scaleX,py=y*scaleY;const dpr=Math.max(1,Math.floor(devicePixelRatio||1));return{x:px/dpr,y:py/dpr}
-}
-function down(e){ if(S.win){initGrid();return;} e.preventDefault();S.dragging=true;const p=cpt(e);const cell=p2c(p.x,p.y);if(cell){clearSel();tryAdd(cell);} }
-function move(e){ if(!S.dragging||S.win)return; e.preventDefault();const p=cpt(e);const cell=p2c(p.x,p.y);if(cell){tryAdd(cell);} }
-function up(e){ if(!S.dragging)return; e.preventDefault();S.dragging=false;commit(); }
+// input/loop/resize
+function cpt(e){const r=canvas.getBoundingClientRect();let x,y;if(e.touches?.length){x=e.touches[0].clientX-r.left;y=e.touches[0].clientY-r.top;}else{x=(e.clientX??0)-r.left;y=(e.clientY??0)-r.top;}const cssW=r.width,cssH=r.height,scaleX=canvas.width/cssW,scaleY=canvas.height/cssH;const px=x*scaleX,py=y*scaleY;const dpr=Math.max(1,Math.floor(devicePixelRatio||1));return{x:px/dpr,y:py/dpr}}
+function down(e){if(S.win){initGrid();return;}e.preventDefault();S.dragging=true;const p=cpt(e);const cell=p2c(p.x,p.y);if(cell){clearSel();tryAdd(cell);}}
+function move(e){if(!S.dragging||S.win)return;e.preventDefault();const p=cpt(e);const cell=p2c(p.x,p.y);if(cell){tryAdd(cell);}}
+function up(e){if(!S.dragging)return;e.preventDefault();S.dragging=false;commit();}
 canvas.addEventListener('mousedown',down);canvas.addEventListener('mousemove',move);addEventListener('mouseup',up);
 canvas.addEventListener('touchstart',down,{passive:false});canvas.addEventListener('touchmove',move,{passive:false});canvas.addEventListener('touchend',up,{passive:false});
-btnRestart.addEventListener('click',initGrid); winEl.addEventListener('click',initGrid);
+btnRestart.addEventListener('click',initGrid);winEl.addEventListener('click',initGrid);
 
-let last=0;
-function tick(t){const dt=Math.min(0.05,(t-last)/1000||0);last=t;updateBall(dt);updConfetti(dt);draw();requestAnimationFrame(tick);}
+let last=0;function tick(t){const dt=Math.min(0.05,(t-last)/1000||0);last=t;updateBall(dt);updConfetti(dt);draw();requestAnimationFrame(tick);}
 function doResize(){resize();placeBall();draw();}
-addEventListener('resize',doResize); if(visualViewport) visualViewport.addEventListener('resize',doResize);
-new ResizeObserver(()=>draw()).observe(topBar); new ResizeObserver(()=>draw()).observe(bottomBar);
-
-// boot
+addEventListener('resize',doResize);if(visualViewport)visualViewport.addEventListener('resize',doResize);
+new ResizeObserver(()=>draw()).observe(topBar);new ResizeObserver(()=>draw()).observe(bottomBar);
 (function(){resize();initGrid();requestAnimationFrame(tick);})();
 </script>
 </body>
-</html> 
+</html>
