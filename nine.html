@@ -2,40 +2,47 @@
 <html lang="pt-BR">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
   <title>9x9 • Múltiplos de 9</title>
   <style>
     :root { color-scheme: dark; }
     html,body { margin:0; height:100%; background:#0d0f12; color:#e8e8e8; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial; }
-    #wrap { display:flex; flex-direction:column; min-height:100%; }
+    #wrap { display:flex; flex-direction:column; min-height:100%; padding-left: env(safe-area-inset-left); padding-right: env(safe-area-inset-right); }
     header, footer { background:#121418; border-block: 1px solid #1f232a; padding:10px 14px; }
     header { display:flex; align-items:center; gap:12px; justify-content:space-between; }
     #title { font-weight:600; }
-    #hud { display:flex; gap:12px; align-items:center; flex-wrap:wrap; }
+    #hud { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
     button { background:#1f6feb; color:#fff; border:0; border-radius:8px; padding:8px 12px; cursor:pointer; }
     button:active { filter:brightness(.9) }
     #c { display:block; margin:0 auto; background:#0a0c0f; touch-action:none; }
     .pill { background:#171a20; border:1px solid #2a2f39; border-radius:999px; padding:4px 10px; font-variant-numeric: tabular-nums; }
-    footer { font-size:12px; opacity:.85; }
+    footer { font-size:12px; opacity:.85; padding-bottom: calc(10px + env(safe-area-inset-bottom)); }
     @media (min-width: 960px){ #wrap { max-width: 1024px; margin: 0 auto; } }
+    /* Compactar em telas estreitas */
+    @media (max-width: 480px){
+      header, footer { padding:8px 10px; }
+      #hud .pill { padding:3px 8px; font-size:12px; }
+      #title { font-size:14px; }
+      button { padding:6px 10px; font-size:14px; }
+    }
   </style>
 </head>
 <body>
   <div id="wrap">
-    <header>
+    <header id="hdr">
       <div id="title">9x9 • Múltiplos de 9</div>
       <div id="hud">
         <span class="pill">Soma: <b id="sum">0</b></span>
         <span class="pill">Soma % 9: <b id="mod">0</b></span>
-        <span class="pill">Selecionadas: <b id="count">0</b></span>
-        <span class="pill">Removidas: <b id="removed">0</b></span>
+        <span class="pill">Sel.: <b id="count">0</b></span>
+        <span class="pill">Remov.: <b id="removed">0</b></span>
       </div>
       <div>
         <button id="btnRestart">Reiniciar</button>
       </div>
     </header>
     <canvas id="c" width="960" height="960" aria-label="Tabuleiro 9x9"></canvas>
-    <footer>Regra: conecte peças <b>adjacentes ortogonalmente</b> (cima/baixo/esquerda/direita). Quando a <b>soma</b> for um <b>múltiplo de 9</b>, as peças <b>somem</b>. Sem gravidade.</footer>
+    <footer id="ftr">Regra: conecte peças <b>adjacentes ortogonalmente</b>. Quando a <b>soma</b> for um <b>múltiplo de 9</b>, as peças <b>somem</b>. Sem gravidade.</footer>
   </div>
   <script type="module" src="./main.js"></script>
 </body>
